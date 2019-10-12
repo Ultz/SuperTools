@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperInvoke", "src\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj", "{828161DC-81AD-4F05-8349-776D34C537A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperPack", "src\Ultz.SuperPack\Ultz.SuperPack.csproj", "{98D39F7A-F7E5-4C5C-A457-132612436C90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperCecil", "src\Ultz.SuperCecil\Ultz.SuperCecil.csproj", "{2353EF7E-7264-456B-8447-A2EDA9528B04}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A6F70F15-F6FC-416B-AC6B-15E422E761A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{828161DC-81AD-4F05-8349-776D34C537A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{828161DC-81AD-4F05-8349-776D34C537A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{828161DC-81AD-4F05-8349-776D34C537A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{828161DC-81AD-4F05-8349-776D34C537A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98D39F7A-F7E5-4C5C-A457-132612436C90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98D39F7A-F7E5-4C5C-A457-132612436C90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98D39F7A-F7E5-4C5C-A457-132612436C90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98D39F7A-F7E5-4C5C-A457-132612436C90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2353EF7E-7264-456B-8447-A2EDA9528B04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2353EF7E-7264-456B-8447-A2EDA9528B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2353EF7E-7264-456B-8447-A2EDA9528B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2353EF7E-7264-456B-8447-A2EDA9528B04}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2353EF7E-7264-456B-8447-A2EDA9528B04} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
+		{828161DC-81AD-4F05-8349-776D34C537A5} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
+		{98D39F7A-F7E5-4C5C-A457-132612436C90} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
+	EndGlobalSection
+EndGlobal

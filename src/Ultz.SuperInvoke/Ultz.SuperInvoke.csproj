@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;netcoreapp30</TargetFrameworks>
+        <LangVersion>8</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="microsoft.dotnet.platformabstractions" Version="3.0.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.0.0" />
+      <PackageReference Include="Mono.Cecil" Version="0.11.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Ultz.SuperCecil\Ultz.SuperCecil.csproj" />
+    </ItemGroup>
+
+</Project>
