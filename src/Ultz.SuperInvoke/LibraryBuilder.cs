@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Ultz.SuperCecil;
 using Ultz.SuperInvoke.Generation;
 using Ultz.SuperInvoke.Native;
 using Ultz.SuperInvoke.Proxy;
@@ -66,6 +65,10 @@ namespace Ultz.SuperInvoke
                 if (opts.IsPInvokeProxyEnabled)
                     def.CustomAttributes.Add(new CustomAttribute(
                         Utilities.GetReference(typeof(PInvokeProxyAttribute).GetConstructor(new Type[0]), module)));
+                
+                if (type.IsInterface)
+                    def.Interfaces.Add(new InterfaceImplementation(module.ImportReference(type)));
+
                 return def;
             }
 

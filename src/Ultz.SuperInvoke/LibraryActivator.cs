@@ -13,7 +13,7 @@ namespace Ultz.SuperInvoke
         {
             var opts = jitOpts ?? BuilderOptions.GetDefault(typeof(T));
             return AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetExportedTypes())
-                       .FirstOrDefault(x => x.IsSubclassOf(typeof(T))) ??
+                       .FirstOrDefault(x => typeof(T).IsAssignableFrom(x) && x != typeof(T)) ??
                    GetImplementationJustInTime(ref opts);
         }
 
@@ -24,17 +24,20 @@ namespace Ultz.SuperInvoke
             var type = opts.Type;
             asm.Write(ms);
             var loadedAsm = Assembly.Load(ms.ToArray());
-            return loadedAsm.GetExportedTypes().FirstOrDefault(x => x.IsSubclassOf(type));
+            return loadedAsm.GetExportedTypes().FirstOrDefault(type.IsAssignableFrom);
         }
 
         public static T CreateStaticallyLinkedInstance<T>(BuilderOptions? jitOpts = null)
         {
+            var opts = jitOpts ?? BuilderOptions.GetDefault(typeof(T));
+            opts.PInvokeName = "__Internal";
             return CreateInstance<T>(new NativeLibrary("__Internal", new PInvokeLibraryLoader(typeof(T))), jitOpts);
         }
 
         public static T CreateInstance<T>(NativeLibrary nativeLibrary, BuilderOptions? jitOpts = null)
         {
-            return (T) Activator.CreateInstance(GetImplementation<T>(), nativeLibrary, jitOpts);
+            var impl = GetImplementation<T>();
+            return (T) Activator.CreateInstance(impl, nativeLibrary);
         }
 
         public static T CreateInstance<T>(string name, BuilderOptions? jitOpts = null)

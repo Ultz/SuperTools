@@ -43,7 +43,7 @@ namespace Ultz.SuperInvoke
                 ParameterMarshallers = DefaultParameterMarshallers,
                 ReturnTypeMarshallers = DefaultReturnTypeMarshallers,
                 IsPInvokeProxyEnabled = true,
-                PInvokeName = "kernel32"
+                PInvokeName = "__Internal"
             };
         }
     }

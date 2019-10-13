@@ -3,9 +3,9 @@ using System.Reflection;
 using Mono.Cecil;
 using MethodAttributes = Mono.Cecil.MethodAttributes;
 
-namespace Ultz.SuperCecil
+namespace Ultz.SuperInvoke
 {
-    public class Utilities
+    internal class Utilities
     {
         public static TypeReference GetReference(Type type, ModuleDefinition mod)
         {

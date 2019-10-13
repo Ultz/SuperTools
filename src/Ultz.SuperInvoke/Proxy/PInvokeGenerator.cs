@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Ultz.SuperCecil;
 
 namespace Ultz.SuperInvoke.Proxy
 {
