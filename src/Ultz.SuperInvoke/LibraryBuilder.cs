@@ -34,8 +34,6 @@ namespace Ultz.SuperInvoke
                 {
                     asm.MainModule.AssemblyReferences.Add(new AssemblyNameReference(depn.Name, depn.Version));
                 }
-                
-                asm.MainModule.ModuleReferences.Add(new ModuleReference(item.PInvokeName));
             }
             asm?.MainModule.AssemblyReferences.Add(new AssemblyNameReference(thisDepn.Name, thisDepn.Version));
             return asm;

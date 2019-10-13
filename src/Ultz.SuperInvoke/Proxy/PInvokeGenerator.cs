@@ -12,6 +12,8 @@ namespace Ultz.SuperInvoke.Proxy
             CallingConvention conv, ModuleDefinition mod, string libName)
         {
             var ret = new MethodDefinition[2];
+            ModuleReference modRef;
+            mod.ModuleReferences.Add(modRef = new ModuleReference(libName));
             ret[0] = new MethodDefinition("proxy_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PInvokeImpl |
                 MethodAttributes.HideBySig, Utilities.GetReference(@return, mod))
@@ -24,7 +26,7 @@ namespace Ultz.SuperInvoke.Proxy
                     CallingConvention.StdCall => PInvokeAttributes.CallConvStdCall,
                     CallingConvention.ThisCall => PInvokeAttributes.CallConvThiscall,
                     _ => throw new ArgumentOutOfRangeException()
-                }, entryPoint, new ModuleReference(libName)),
+                }, entryPoint, modRef),
                 IsPreserveSig = true
             };
             foreach (var t in parameters) ret[0].Parameters.Add(new ParameterDefinition(Utilities.GetReference(t, mod)));
