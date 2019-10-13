@@ -1,6 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
+#if NETCOREAPP3_0
+using NativeLibrary3 = System.Runtime.InteropServices.NativeLibrary;
+#endif
 
 namespace Ultz.SuperInvoke.Loader
 {
@@ -148,6 +152,10 @@ namespace Ultz.SuperInvoke.Loader
         /// <returns>A LibraryLoader suitable for loading libraries.</returns>
         public static LibraryLoader GetPlatformDefaultLoader()
         {
+#if NETCOREAPP3_0
+            return new NetCoreNativeLibraryLoader();
+#else
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return new Win32LibraryLoader();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return new UnixLibraryLoader();
@@ -157,7 +165,28 @@ namespace Ultz.SuperInvoke.Loader
                 return new BsdLibraryLoader();
 
             throw new PlatformNotSupportedException("This platform cannot load native libraries.");
+#endif
         }
+
+#if NETCOREAPP3_0
+        private class NetCoreNativeLibraryLoader : LibraryLoader
+        {
+            protected override IntPtr CoreLoadNativeLibrary(string name)
+            {
+                return NativeLibrary3.Load(name, Assembly.GetCallingAssembly(), null);
+            }
+
+            protected override void CoreFreeNativeLibrary(IntPtr handle)
+            {
+                NativeLibrary3.Free(handle);
+            }
+
+            protected override IntPtr CoreLoadFunctionPointer(IntPtr handle, string functionName)
+            {
+                return NativeLibrary3.GetExport(handle, functionName);
+            }
+        }
+#endif
 
         private class BsdLibraryLoader : LibraryLoader
         {
