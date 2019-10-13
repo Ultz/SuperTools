@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj" />
+      <ProjectReference Include="..\..\src\Ultz.SuperPack\Ultz.SuperPack.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AdvancedDLSupport" Version="3.1.0" />
+    </ItemGroup>
+
+</Project>

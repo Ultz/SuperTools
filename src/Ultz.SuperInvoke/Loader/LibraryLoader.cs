@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
-using System.Runtime.InteropServices;
+
 #if NETCOREAPP3_0
+using System.Reflection;
 using NativeLibrary3 = System.Runtime.InteropServices.NativeLibrary;
+#else
+using System.Runtime.InteropServices;
 #endif
 
 namespace Ultz.SuperInvoke.Loader

@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Reflection;
 
 namespace Ultz.SuperInvoke.AOT
 {
@@ -14,6 +16,13 @@ namespace Ultz.SuperInvoke.AOT
         {
             var opts = BuilderOptions.GetDefault(typeof(T));
             WriteImplementation(stream, ref opts);
+        }
+
+        public static Assembly LoadImplementation<T>(Stream stream)
+        {
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return AppDomain.CurrentDomain.Load(ms.ToArray());
         }
     }
 }

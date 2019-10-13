@@ -23,9 +23,10 @@ namespace Ultz.SuperInvoke.Native
         /// </summary>
         public CallingConvention? Convention { get; set; } = null;
 
-        public static string GetEntryPoint(NativeApiAttribute attr, NativeApiAttribute parent)
+        public static string GetEntryPoint(NativeApiAttribute attr, NativeApiAttribute parent, string method)
         {
-            return (string.IsNullOrEmpty(attr?.Prefix) ? parent?.Prefix : attr.Prefix) + attr?.EntryPoint;
+            return (string.IsNullOrEmpty(attr?.Prefix) ? parent?.Prefix : attr.Prefix) +
+                   (string.IsNullOrEmpty(attr?.EntryPoint) ? method : attr.EntryPoint);
         }
 
         public static CallingConvention GetCallingConvention(NativeApiAttribute attr, NativeApiAttribute parent)

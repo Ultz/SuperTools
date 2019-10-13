@@ -11,8 +11,4 @@
       <PackageReference Include="Mono.Cecil" Version="0.11.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Ultz.SuperCecil\Ultz.SuperCecil.csproj" />
-    </ItemGroup>
-
 </Project>

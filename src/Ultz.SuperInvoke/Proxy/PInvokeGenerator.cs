@@ -9,12 +9,12 @@ namespace Ultz.SuperInvoke.Proxy
     public class PInvokeGenerator
     {
         public static MethodDefinition[] Generate(string entryPoint, Type[] parameters, Type @return,
-            CallingConvention conv, ModuleDefinition mod)
+            CallingConvention conv, ModuleDefinition mod, string libName)
         {
             var ret = new MethodDefinition[2];
-            ret[0] = new MethodDefinition(entryPoint,
+            ret[0] = new MethodDefinition("proxy_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PInvokeImpl |
-                MethodAttributes.HideBySig, Utilities.GetReference(@return))
+                MethodAttributes.HideBySig, Utilities.GetReference(@return, mod))
             {
                 PInvokeInfo = new PInvokeInfo(conv switch
                 {
@@ -24,10 +24,10 @@ namespace Ultz.SuperInvoke.Proxy
                     CallingConvention.StdCall => PInvokeAttributes.CallConvStdCall,
                     CallingConvention.ThisCall => PInvokeAttributes.CallConvThiscall,
                     _ => throw new ArgumentOutOfRangeException()
-                }, entryPoint, new ModuleReference("__Internal")),
+                }, entryPoint, new ModuleReference(libName)),
                 IsPreserveSig = true
             };
-            foreach (var t in parameters) ret[0].Parameters.Add(new ParameterDefinition(Utilities.GetReference(t)));
+            foreach (var t in parameters) ret[0].Parameters.Add(new ParameterDefinition(Utilities.GetReference(t, mod)));
             ret[1] = new MethodDefinition("ldftn_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static, mod.TypeSystem.IntPtr);
             var il = ret[1].Body.GetILProcessor();

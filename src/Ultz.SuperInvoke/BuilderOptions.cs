@@ -30,6 +30,11 @@ namespace Ultz.SuperInvoke
         /// </summary>
         public bool IsPInvokeProxyEnabled { get; set; }
 
+        /// <summary>
+        /// Gets or sets the P/Invoke library name to be used in the P/Invoke proxy.
+        /// </summary>
+        public string PInvokeName { get; set; }
+
         public static BuilderOptions GetDefault(Type type)
         {
             return new BuilderOptions
@@ -37,7 +42,8 @@ namespace Ultz.SuperInvoke
                 Type = type,
                 ParameterMarshallers = DefaultParameterMarshallers,
                 ReturnTypeMarshallers = DefaultReturnTypeMarshallers,
-                IsPInvokeProxyEnabled = true
+                IsPInvokeProxyEnabled = true,
+                PInvokeName = "kernel32"
             };
         }
     }
