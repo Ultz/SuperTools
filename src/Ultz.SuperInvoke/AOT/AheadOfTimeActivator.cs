@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Ultz.SuperInvoke.Native;
 
 namespace Ultz.SuperInvoke.AOT
 {
@@ -20,12 +21,14 @@ namespace Ultz.SuperInvoke.AOT
         }
 
         public static void WriteImplementation<T>(Stream stream)
+            where T:NativeApiContainer
         {
             var opts = BuilderOptions.GetDefault(typeof(T));
             WriteImplementation(stream, ref opts);
         }
 
         public static Assembly LoadImplementation<T>(Stream stream)
+            where T:NativeApiContainer
         {
             using var ms = new MemoryStream();
             stream.CopyTo(ms);

@@ -6,9 +6,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="microsoft.dotnet.platformabstractions" Version="3.0.0" />
-      <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.0.0" />
       <PackageReference Include="Mono.Cecil" Version="0.11.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="microsoft.dotnet.platformabstractions" Version="3.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.0.0" />
     </ItemGroup>
 
 </Project>

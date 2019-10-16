@@ -11,9 +11,9 @@ namespace TestApp
         static unsafe void Main(string[] args)
         {
             var x = File.OpenWrite("a.dll");
-            AheadOfTimeActivator.WriteImplementation<ITest>(x);
+            AheadOfTimeActivator.WriteImplementation<TestClass>(x);
             x.Flush();
-            var user32 = LibraryActivator.CreateInstance<ITest>("user32.dll");
+            var user32 = LibraryActivator.CreateInstance<TestClass>("user32.dll");
             var caption = (char*)Marshal.StringToHGlobalAnsi("SuperInvoke");
             var text = (char*)Marshal.StringToHGlobalAnsi("Hello from SuperInvoke!");
             user32.MessageBox(IntPtr.Zero, text, caption, 0);

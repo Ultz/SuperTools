@@ -29,31 +29,20 @@ namespace Ultz.SuperInvoke
                 asm ??= AssemblyDefinition.CreateAssembly(
                     name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", ModuleKind.Dll);
                 asm.MainModule.Types.Add(CreateImplementation(ref opts, asm.MainModule));
-                if (!asm.MainModule.AssemblyReferences.Any(x => x.Name == depn.Name && x.Version == depn.Version))
-                {
-                    asm.MainModule.AssemblyReferences.Add(new AssemblyNameReference(depn.Name, depn.Version));
-                }
             }
-            asm?.MainModule.AssemblyReferences.Add(new AssemblyNameReference(thisDepn.Name, thisDepn.Version));
+
             return asm;
         }
 
         public static TypeDefinition CreateImplementation(ref BuilderOptions opts, ModuleDefinition module)
         {
             var type = opts.Type;
-            if (type.GetCustomAttribute<NativeApiAttribute>() is null)
-                throw new ArgumentException
-                (
-                    "The type provided does not have NativeApiAttribute applied.",
-                    nameof(type)
-                );
-
-            if (type.IsClass && type.IsAbstract && type.IsSubclassOf(typeof(NativeApiContainer)) || type.IsInterface)
+            if (type.IsClass && type.IsAbstract && type.IsSubclassOf(typeof(NativeApiContainer)))
             {
                 var def = new TypeDefinition($"Ultz.Private.SIG.{type.Namespace}",
                     $"{type.Name}_SuperInvokeGenerated",
                     TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class,
-                    type.IsClass ? Utilities.GetReference(type, module) : Utilities.GetReference(typeof(NativeApiContainer), module));
+                    Utilities.GetReference(type, module));
                 var impl = CreateImplementation(ref opts,
                     typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic),
                     module, out var slots);
@@ -65,17 +54,21 @@ namespace Ultz.SuperInvoke
                 if (opts.IsPInvokeProxyEnabled)
                     def.CustomAttributes.Add(new CustomAttribute(
                         Utilities.GetReference(typeof(PInvokeProxyAttribute).GetConstructor(new Type[0]), module)));
-                
-                if (type.IsInterface)
-                    def.Interfaces.Add(new InterfaceImplementation(module.ImportReference(type)));
+
+                else
+                {
+                    foreach (var parent in type.GetInterfaces())
+                    {
+                        def.Interfaces.Add(new InterfaceImplementation(Utilities.GetReference(parent, module)));
+                    }
+                }
 
                 return def;
             }
 
             throw new ArgumentException
             (
-                "The type to create an implementation of must either be an abstract class which derives from " +
-                "NativeApiContainer, or an interface.",
+                "The type to implement must be an abstract class extending NativeApiContainer.",
                 nameof(type)
             );
         }
@@ -91,11 +84,9 @@ namespace Ultz.SuperInvoke
             ctorIl.Emit(OpCodes.Ldarg_1);
             ctorIl.Emit(OpCodes.Ldc_I4, slots);
             ctorIl.Emit(OpCodes.Call,
-                (type.IsClass
-                    ? Utilities.GetReference(type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, Type.DefaultBinder,
-                        new[] {typeof(NativeLibrary), typeof(int)}, new ParameterModifier[0]), module)
-                    : Utilities.GetReference(typeof(NativeApiContainer).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
-                        Type.DefaultBinder, new[] {typeof(NativeLibrary), typeof(int)}, new ParameterModifier[0]), module)) ??
+                Utilities.GetReference(type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+                    Type.DefaultBinder,
+                    new[] {typeof(NativeLibrary), typeof(int)}, new ParameterModifier[0]), module) ??
                 throw new ArgumentException("Type must preserve the (NativeLibrary, int) constructor", nameof(type)));
             ctorIl.Emit(OpCodes.Ret);
             return ctor;
@@ -107,22 +98,19 @@ namespace Ultz.SuperInvoke
             slots = 0;
             var type = opts.Type;
             var mainAttr = type.GetCustomAttribute<NativeApiAttribute>();
-            var methods = (type.IsInterface
-                    ? new[] {type}
-                        .Concat(
-                            type.GetInterfaces()).SelectMany(i => i.GetMethods()).ToArray()
-                    : type.GetMethods(BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance))
-                .Where(x => type.IsInterface || x.IsAbstract)
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance)
+                .Where(x => x.IsAbstract)
                 .ToArray();
             var ret = new List<MethodDefinition>();
             for (var i = 0; i < methods.Length; i++)
             {
                 var method = methods[i];
-                var attr = method.GetCustomAttribute<NativeApiAttribute>();
+                var attr = method.GetCustomAttribute<NativeApiAttribute>(true) ?? method.GetRuntimeBaseDefinition()
+                               .GetCustomAttribute<NativeApiAttribute>(true);
                 var ep = NativeApiAttribute.GetEntryPoint(attr, mainAttr, method.Name);
                 var def = Utilities.CreateEmptyDefinition(method,
                     MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual |
-                    MethodAttributes.HideBySig | MethodAttributes.NewSlot, mod);
+                    MethodAttributes.HideBySig, mod);
 
                 var il = def.Body.GetILProcessor();
                 EmitParameters(il, method.GetParameters(), opts.ParameterMarshallers, out var paramTypes);
@@ -137,6 +125,22 @@ namespace Ultz.SuperInvoke
             }
 
             return ret;
+
+            NativeApiAttribute GetAttribute(MethodInfo info, Type containingType)
+            {
+                var attribute = info.GetCustomAttribute<NativeApiAttribute>(true);
+                if (attribute is null)
+                {
+                    foreach (var newType in containingType.GetInterfaces().Concat(new[] {containingType.BaseType}))
+                    {
+                        var newMethod = newType.GetMethod(info.Name,
+                            info.GetParameters().Select(x => x.ParameterType).ToArray());
+                        attribute ??= GetAttribute(newMethod, newType);
+                    }
+                }
+
+                return attribute;
+            }
 
             void EmitParameters(ILProcessor il, ParameterInfo[] parameterInfo, IParameterMarshaller[] marshal,
                 out Type[] finalTypes)

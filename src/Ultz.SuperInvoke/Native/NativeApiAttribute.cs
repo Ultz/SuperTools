@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Ultz.SuperInvoke.Native
 {
-    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class NativeApiAttribute : Attribute
     {
         /// <summary>
