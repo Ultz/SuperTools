@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
+using Mono.Collections.Generic;
 using Ultz.SuperInvoke.Generation;
 using Ultz.SuperInvoke.Native;
 using Ultz.SuperInvoke.Proxy;
@@ -27,7 +29,7 @@ namespace Ultz.SuperInvoke
                 var depn = opts.Type.Assembly.GetName();
                 var thisName = $"Ultz.Private.SIG.{item.Type.Namespace}.{item.Type.Name}";
                 asm ??= AssemblyDefinition.CreateAssembly(
-                    name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", ModuleKind.Dll);
+                    name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", new ModuleParameters(){Runtime = T});
                 asm.MainModule.Types.Add(CreateImplementation(ref opts, asm.MainModule));
             }
 
@@ -42,11 +44,13 @@ namespace Ultz.SuperInvoke
                 var def = new TypeDefinition($"Ultz.Private.SIG.{type.Namespace}",
                     $"{type.Name}_SuperInvokeGenerated",
                     TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class,
-                    Utilities.GetReference(type, module));
+                    module.ImportReference(opts._typeDef));
                 var impl = CreateImplementation(ref opts,
-                    typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic),
+                    Utilities.GetReference(
+                        typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic),
+                        module),
                     module, out var slots);
-                var ctor = CreateConstructor(opts.Type, slots, module);
+                var ctor = CreateConstructor(opts._typeDef, slots, module);
                 foreach (var method in impl) def.Methods.Add(method);
 
                 def.Methods.Add(ctor);
@@ -55,25 +59,17 @@ namespace Ultz.SuperInvoke
                     def.CustomAttributes.Add(new CustomAttribute(
                         Utilities.GetReference(typeof(PInvokeProxyAttribute).GetConstructor(new Type[0]), module)));
 
-                else
-                {
-                    foreach (var parent in type.GetInterfaces())
-                    {
-                        def.Interfaces.Add(new InterfaceImplementation(Utilities.GetReference(parent, module)));
-                    }
-                }
-
                 return def;
             }
 
             throw new ArgumentException
             (
                 "The type to implement must be an abstract class extending NativeApiContainer.",
-                nameof(type)
+                nameof(opts.Type)
             );
         }
 
-        public static MethodDefinition CreateConstructor(Type type, int slots, ModuleDefinition module)
+        public static MethodDefinition CreateConstructor(TypeDefinition type, int slots, ModuleDefinition module)
         {
             var ctor = new MethodDefinition(".ctor",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
@@ -84,39 +80,38 @@ namespace Ultz.SuperInvoke
             ctorIl.Emit(OpCodes.Ldarg_1);
             ctorIl.Emit(OpCodes.Ldc_I4, slots);
             ctorIl.Emit(OpCodes.Call,
-                Utilities.GetReference(type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
-                    Type.DefaultBinder,
-                    new[] {typeof(NativeLibrary), typeof(int)}, new ParameterModifier[0]), module) ??
-                throw new ArgumentException("Type must preserve the (NativeLibrary, int) constructor", nameof(type)));
+                module.ImportReference(type.GetConstructors().FirstOrDefault(x =>
+                    x.Parameters.Select(y => y.ParameterType.ToString()).SequenceEqual(new[]
+                        {"Ultz.SuperInvoke.Loader.NativeLibrary", module.TypeSystem.Int32.FullName})) ??
+                throw new ArgumentException("Type must preserve the (NativeLibrary, int) constructor", nameof(type))));
             ctorIl.Emit(OpCodes.Ret);
             return ctor;
         }
 
-        public static IReadOnlyList<MethodDefinition> CreateImplementation(ref BuilderOptions opts, MethodInfo load,
+        public static IReadOnlyList<MethodDefinition> CreateImplementation(ref BuilderOptions opts, MethodReference load,
             ModuleDefinition mod, out int slots)
         {
             slots = 0;
-            var type = opts.Type;
-            var mainAttr = type.GetCustomAttribute<NativeApiAttribute>();
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance)
+            var type = opts._typeDef;
+            var mainAttr = type.GetNativeApiAttribute();
+            var methods = type.Methods
                 .Where(x => x.IsAbstract)
                 .ToArray();
             var ret = new List<MethodDefinition>();
             for (var i = 0; i < methods.Length; i++)
             {
                 var method = methods[i];
-                var attr = method.GetCustomAttribute<NativeApiAttribute>(true) ?? method.GetRuntimeBaseDefinition()
-                               .GetCustomAttribute<NativeApiAttribute>(true);
+                var attr = GetAttribute(method, type);
                 var ep = NativeApiAttribute.GetEntryPoint(attr, mainAttr, method.Name);
                 var def = Utilities.CreateEmptyDefinition(method,
                     MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual |
-                    MethodAttributes.HideBySig, mod);
+                    MethodAttributes.HideBySig);
 
                 var il = def.Body.GetILProcessor();
-                EmitParameters(il, method.GetParameters(), opts.ParameterMarshallers, out var paramTypes);
-                EmitEntryPoint(il, Utilities.GetReference(load, mod), i, ep);
+                EmitParameters(il, method.Parameters, opts.ParameterMarshallers, out var paramTypes, out var epilogue);
+                EmitEntryPoint(il, mod.ImportReference(load), i, ep);
                 EmitCalli(il, attr, mainAttr, def);
-                EmitReturn(il, method.ReturnParameter, opts.ReturnTypeMarshallers, out var retType);
+                EmitReturn(il, method.MethodReturnType, opts.ReturnTypeMarshallers, out var retType);
                 ret.Add(def);
                 if (opts.IsPInvokeProxyEnabled)
                     ret.AddRange(PInvokeGenerator.Generate(ep, paramTypes, retType,
@@ -126,15 +121,27 @@ namespace Ultz.SuperInvoke
 
             return ret;
 
-            NativeApiAttribute GetAttribute(MethodInfo info, Type containingType)
+            NativeApiAttribute GetAttribute(MethodDefinition info, TypeDefinition containingType)
             {
-                var attribute = info.GetCustomAttribute<NativeApiAttribute>(true);
+                var attribute = info.GetNativeApiAttribute();
                 if (attribute is null)
                 {
-                    foreach (var newType in containingType.GetInterfaces().Concat(new[] {containingType.BaseType}))
+                    foreach (var newTypeRef in containingType.Interfaces.Select(x => x.InterfaceType).Concat(new[] {containingType.BaseType}))
                     {
-                        var newMethod = newType.GetMethod(info.Name,
-                            info.GetParameters().Select(x => x.ParameterType).ToArray());
+                        var newType = newTypeRef.Resolve();
+                        if (newType is null)
+                        {
+                            continue;
+                        }
+
+                        var newMethod = newType.Methods.FirstOrDefault
+                        (
+                            x => x.Name == info.Name &&
+                                 info.Parameters.Select(y => y.ParameterType)
+                                     .SequenceEqual(
+                                         info.Parameters.Select(y =>
+                                             y.ParameterType))
+                        );
                         attribute ??= GetAttribute(newMethod, newType);
                     }
                 }
@@ -142,11 +149,12 @@ namespace Ultz.SuperInvoke
                 return attribute;
             }
 
-            void EmitParameters(ILProcessor il, ParameterInfo[] parameterInfo, IParameterMarshaller[] marshal,
-                out Type[] finalTypes)
+            void EmitParameters(ILProcessor il, Collection<ParameterDefinition> parameterInfo, IParameterMarshaller[] marshal,
+                out TypeReference[] finalTypes, out List<Action<ILProcessor>> epilogue)
             {
-                finalTypes = new Type[parameterInfo.Length];
-                for (var i = 0; i < parameterInfo.Length; i++)
+                finalTypes = new TypeReference[parameterInfo.Count];
+                epilogue = new List<Action<ILProcessor>>();
+                for (var i = 0; i < parameterInfo.Count; i++)
                 {
                     var ili = i + 1;
                     if (ili < 4)
@@ -168,8 +176,10 @@ namespace Ultz.SuperInvoke
                         foreach (var stage in marshal)
                         {
                             if (!stage.IsApplicable(currentType)) continue;
-                            currentType = stage.Write(currentType, il, parameterInfo[i]);
+                            var newType = stage.Write(currentType, il, parameterInfo[i], out var ep);
+                            currentType = newType;
                             changed = true;
+                            if (!(ep is null)) epilogue.Add(ep);
                         }
                     } while (changed);
 
@@ -206,11 +216,11 @@ namespace Ultz.SuperInvoke
                 processor.Emit(OpCodes.Calli, callSite);
             }
 
-            void EmitReturn(ILProcessor il, ParameterInfo parameterInfo, IReturnTypeMarshaller[] marshal,
-                out Type finalType)
+            void EmitReturn(ILProcessor il, MethodReturnType parameterInfo, IReturnTypeMarshaller[] marshal,
+                out TypeReference finalType)
             {
-                var currentType = parameterInfo.ParameterType;
-                if (parameterInfo.ParameterType != typeof(void))
+                var currentType = parameterInfo.ReturnType;
+                if (parameterInfo.ReturnType.FullName != "System.Void")
                 {
                     bool changed;
                     do

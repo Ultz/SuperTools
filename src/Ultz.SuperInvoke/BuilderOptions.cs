@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using Mono.Cecil;
 using Ultz.SuperInvoke.Generation;
 
 namespace Ultz.SuperInvoke
@@ -10,10 +12,27 @@ namespace Ultz.SuperInvoke
         public static IReturnTypeMarshaller[] DefaultReturnTypeMarshallers { get; } =
             new IReturnTypeMarshaller[0]; // TODO
 
+        internal TypeDefinition _typeDef;
+
         /// <summary>
         ///     Gets or sets the type to implement.
         /// </summary>
-        public Type Type { get; set; }
+        public Type Type
+        {
+            get => GetType(_typeDef.FullName);
+            set => _typeDef = AssemblyDefinition.ReadAssembly(value.Assembly.Location)
+                       .Modules
+                       .Select(x => x.GetType(value.FullName))
+                       .FirstOrDefault(x => !(x is null));
+        }
+
+        private Type GetType(string name)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic)
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.FullName.Equals(name));
+        }
 
         /// <summary>
         ///     Gets or sets the parameter marshalling stages.

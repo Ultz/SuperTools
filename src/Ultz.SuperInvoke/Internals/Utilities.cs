@@ -1,0 +1,65 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Mono.Cecil;
+using Ultz.SuperInvoke.Native;
+using MethodAttributes = Mono.Cecil.MethodAttributes;
+using ParameterAttributes = Mono.Cecil.ParameterAttributes;
+
+namespace Ultz.SuperInvoke
+{
+    internal static class Utilities
+    {
+        public static TypeReference GetReference(Type type, ModuleDefinition mod)
+        {
+            return mod.ImportReference(type);
+        }
+
+        public static MethodReference GetReference(MethodBase load, ModuleDefinition mod)
+        {
+            return mod.ImportReference(load);
+        }
+
+        public static NativeApiAttribute GetNativeApiAttribute(this Mono.Cecil.IMemberDefinition i)
+        {
+            var val = new NativeApiAttribute();
+            var props = i.CustomAttributes
+                .FirstOrDefault(x => x.AttributeType.FullName == typeof(NativeApiAttribute).FullName)?.Properties;
+            if (props is null)
+            {
+                return null;
+            }
+
+            foreach (var argument in props)
+            {
+                switch (argument.Name)
+                {
+                    case "EntryPoint":
+                        val.EntryPoint = argument.Argument.Value as string;
+                        break;
+                    case "Prefix":
+                        val.Prefix = argument.Argument.Value as string;
+                        break;
+                    case "Convention":
+                        val.Convention = argument.Argument.Value as CallingConvention?;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Can't handle property {argument.Name}");
+                }
+            }
+
+            return val;
+        }
+
+        public static MethodDefinition CreateEmptyDefinition(MethodDefinition refr, MethodAttributes attributes)
+        {
+            var ret = new MethodDefinition(refr.Name, attributes, refr.ReturnType);
+            foreach (var parameterDefinition in refr.Parameters) ret.Parameters.Add(new ParameterDefinition(parameterDefinition.Name, ParameterAttributes.None, parameterDefinition.ParameterType));
+            foreach (var genParam in refr.GenericParameters) ret.GenericParameters.Add(genParam);
+
+            return ret;
+        }
+    }
+}

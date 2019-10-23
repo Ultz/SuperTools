@@ -7,7 +7,7 @@ namespace Ultz.SuperInvoke.Proxy
 {
     public class PInvokeGenerator
     {
-        public static MethodDefinition[] Generate(string entryPoint, Type[] parameters, Type @return,
+        public static MethodDefinition[] Generate(string entryPoint, TypeReference[] parameters, TypeReference @return,
             CallingConvention conv, ModuleDefinition mod, string libName)
         {
             var ret = new MethodDefinition[2];
@@ -15,7 +15,7 @@ namespace Ultz.SuperInvoke.Proxy
             mod.ModuleReferences.Add(modRef = new ModuleReference(libName));
             ret[0] = new MethodDefinition("proxy_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PInvokeImpl |
-                MethodAttributes.HideBySig, Utilities.GetReference(@return, mod))
+                MethodAttributes.HideBySig, mod.ImportReference(@return))
             {
                 PInvokeInfo = new PInvokeInfo(conv switch
                 {
@@ -28,7 +28,7 @@ namespace Ultz.SuperInvoke.Proxy
                 }, entryPoint, modRef),
                 IsPreserveSig = true
             };
-            foreach (var t in parameters) ret[0].Parameters.Add(new ParameterDefinition(Utilities.GetReference(t, mod)));
+            foreach (var t in parameters) ret[0].Parameters.Add(new ParameterDefinition(mod.ImportReference(t)));
             ret[1] = new MethodDefinition("ldftn_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static, mod.TypeSystem.IntPtr);
             var il = ret[1].Body.GetILProcessor();
