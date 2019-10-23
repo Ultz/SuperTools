@@ -12,17 +12,7 @@ namespace Ultz.SuperInvoke
 {
     internal static class Utilities
     {
-        public static TypeReference GetReference(Type type, ModuleDefinition mod)
-        {
-            return mod.ImportReference(type);
-        }
-
-        public static MethodReference GetReference(MethodBase load, ModuleDefinition mod)
-        {
-            return mod.ImportReference(load);
-        }
-
-        public static NativeApiAttribute GetNativeApiAttribute(this Mono.Cecil.IMemberDefinition i)
+        public static NativeApiAttribute GetNativeApiAttribute(this IMemberDefinition i)
         {
             var val = new NativeApiAttribute();
             var props = i.CustomAttributes

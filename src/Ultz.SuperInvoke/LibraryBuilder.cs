@@ -29,7 +29,7 @@ namespace Ultz.SuperInvoke
                 var depn = opts.Type.Assembly.GetName();
                 var thisName = $"Ultz.Private.SIG.{item.Type.Namespace}.{item.Type.Name}";
                 asm ??= AssemblyDefinition.CreateAssembly(
-                    name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", new ModuleParameters(){Runtime = T});
+                    name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", ModuleKind.Dll);
                 asm.MainModule.Types.Add(CreateImplementation(ref opts, asm.MainModule));
             }
 
@@ -46,9 +46,8 @@ namespace Ultz.SuperInvoke
                     TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class,
                     module.ImportReference(opts._typeDef));
                 var impl = CreateImplementation(ref opts,
-                    Utilities.GetReference(
-                        typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic),
-                        module),
+                    module.ImportReference(
+                        typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic)),
                     module, out var slots);
                 var ctor = CreateConstructor(opts._typeDef, slots, module);
                 foreach (var method in impl) def.Methods.Add(method);
@@ -57,7 +56,7 @@ namespace Ultz.SuperInvoke
 
                 if (opts.IsPInvokeProxyEnabled)
                     def.CustomAttributes.Add(new CustomAttribute(
-                        Utilities.GetReference(typeof(PInvokeProxyAttribute).GetConstructor(new Type[0]), module)));
+                        module.ImportReference(typeof(PInvokeProxyAttribute).GetConstructor(new Type[0]))));
 
                 return def;
             }
@@ -74,7 +73,7 @@ namespace Ultz.SuperInvoke
             var ctor = new MethodDefinition(".ctor",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
                 MethodAttributes.RTSpecialName, module.TypeSystem.Void);
-            ctor.Parameters.Add(new ParameterDefinition(Utilities.GetReference(typeof(NativeLibrary), module)));
+            ctor.Parameters.Add(new ParameterDefinition(module.ImportReference(typeof(NativeLibrary))));
             var ctorIl = ctor.Body.GetILProcessor();
             ctorIl.Emit(OpCodes.Ldarg_0);
             ctorIl.Emit(OpCodes.Ldarg_1);
