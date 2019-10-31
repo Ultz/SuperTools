@@ -18,19 +18,36 @@ namespace Ultz.SuperInvoke
 {
     public static class LibraryBuilder
     {
+        private static readonly string[] RefRemovals = {
+            "System.Private.CoreLib",
+            "mscorlib",
+            "System.Runtime"
+        };
         public static AssemblyDefinition CreateAssembly(IEnumerable<BuilderOptions> workload,
             AssemblyNameDefinition name = null)
         {
-            var thisDepn = typeof(LibraryBuilder).Assembly.GetName();
             AssemblyDefinition asm = null;
+            var whitelist = new List<string>();
             foreach (var item in workload)
             {
                 var opts = item;
-                var depn = opts.Type.Assembly.GetName();
                 var thisName = $"Ultz.Private.SIG.{item.Type.Namespace}.{item.Type.Name}";
                 asm ??= AssemblyDefinition.CreateAssembly(
                     name ?? new AssemblyNameDefinition(thisName, new Version(1, 0)), $"{thisName}.dll", ModuleKind.Dll);
                 asm.MainModule.Types.Add(CreateImplementation(ref opts, asm.MainModule));
+                whitelist.AddRange(item._typeDef.Module.AssemblyReferences.Where(x => RefRemovals.Contains(x.Name))
+                    .Where(x => !whitelist.Contains(x.Name)).Select(x => x.Name));
+            }
+
+            if (!(asm is null))
+            {
+                var removals = asm.MainModule.AssemblyReferences.Select((x, i) => (x, i)).Where(x =>
+                        RefRemovals.Contains(x.x.Name) && !whitelist.Contains(x.x.Name)).ToList()
+                    .OrderByDescending(x => x.i);
+                foreach (var y in removals)
+                {
+                    asm.MainModule.AssemblyReferences.RemoveAt(y.i);
+                }
             }
 
             return asm;
@@ -45,11 +62,11 @@ namespace Ultz.SuperInvoke
                     $"{type.Name}_SuperInvokeGenerated",
                     TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class,
                     module.ImportReference(opts._typeDef));
-                var impl = CreateImplementation(ref opts,
-                    module.ImportReference(
-                        typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic)),
-                    module, out var slots);
-                var ctor = CreateConstructor(opts._typeDef, slots, module);
+                var load = module.ImportReference(
+                    typeof(NativeApiContainer).GetMethod("Load", BindingFlags.Instance | BindingFlags.NonPublic));
+                var impl = CreateImplementation(ref opts, load,
+                    module, out var eps);
+                var ctor = CreateConstructor(opts._typeDef, eps, module, !opts.UseLazyBinding, load);
                 foreach (var method in impl) def.Methods.Add(method);
 
                 def.Methods.Add(ctor);
@@ -68,7 +85,7 @@ namespace Ultz.SuperInvoke
             );
         }
 
-        public static MethodDefinition CreateConstructor(TypeDefinition type, int slots, ModuleDefinition module)
+        public static MethodDefinition CreateConstructor(TypeDefinition type, IReadOnlyList<string> slots, ModuleDefinition module, bool preload, MethodReference load)
         {
             var ctor = new MethodDefinition(".ctor",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
@@ -77,20 +94,33 @@ namespace Ultz.SuperInvoke
             var ctorIl = ctor.Body.GetILProcessor();
             ctorIl.Emit(OpCodes.Ldarg_0);
             ctorIl.Emit(OpCodes.Ldarg_1);
-            ctorIl.Emit(OpCodes.Ldc_I4, slots);
+            ctorIl.Emit(OpCodes.Ldc_I4, slots.Count);
             ctorIl.Emit(OpCodes.Call,
                 module.ImportReference(type.GetConstructors().FirstOrDefault(x =>
                     x.Parameters.Select(y => y.ParameterType.ToString()).SequenceEqual(new[]
                         {"Ultz.SuperInvoke.Loader.NativeLibrary", module.TypeSystem.Int32.FullName})) ??
                 throw new ArgumentException("Type must preserve the (NativeLibrary, int) constructor", nameof(type))));
+            if (preload)
+            {
+                for (var i = 0; i < slots.Count; i++)
+                {
+                    var ep = slots[i];
+                    ctorIl.Emit(OpCodes.Ldarg_0);
+                    ctorIl.Emit(OpCodes.Ldc_I4, i);
+                    ctorIl.Emit(OpCodes.Ldstr, ep);
+                    ctorIl.Emit(OpCodes.Call, load);
+                    ctorIl.Emit(OpCodes.Pop);
+                }
+            }
+
             ctorIl.Emit(OpCodes.Ret);
             return ctor;
         }
 
         public static IReadOnlyList<MethodDefinition> CreateImplementation(ref BuilderOptions opts, MethodReference load,
-            ModuleDefinition mod, out int slots)
+            ModuleDefinition mod, out IReadOnlyList<string> epl)
         {
-            slots = 0;
+            var eps = new List<string>();
             var type = opts._typeDef;
             var mainAttr = type.GetNativeApiAttribute();
             var methods = type.Methods
@@ -104,20 +134,27 @@ namespace Ultz.SuperInvoke
                 var ep = NativeApiAttribute.GetEntryPoint(attr, mainAttr, method.Name);
                 var def = Utilities.CreateEmptyDefinition(method,
                     MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual |
-                    MethodAttributes.HideBySig);
+                    MethodAttributes.HideBySig, mod);
 
                 var il = def.Body.GetILProcessor();
-                EmitParameters(il, method.Parameters, opts.ParameterMarshallers, out var paramTypes, out var epilogue);
+                var ctx = new MethodContext(il, i, mod);
+                EmitParameters(ctx, method.Parameters, opts.ParameterMarshallers, out var paramTypes, out var epilogue);
                 EmitEntryPoint(il, mod.ImportReference(load), i, ep);
-                EmitCalli(il, attr, mainAttr, def);
-                EmitReturn(il, method.MethodReturnType, opts.ReturnTypeMarshallers, out var retType);
+                EmitCalli(il, attr, mainAttr, def, paramTypes);
+                foreach (var e in epilogue)
+                {
+                    e(ctx);
+                }
+                EmitReturn(ctx, method.MethodReturnType, opts.ReturnTypeMarshallers, out var retType);
                 ret.Add(def);
                 if (opts.IsPInvokeProxyEnabled)
                     ret.AddRange(PInvokeGenerator.Generate(ep, paramTypes, retType,
-                        NativeApiAttribute.GetCallingConvention(attr, mainAttr), mod, opts.PInvokeName));
-                slots++;
+                            NativeApiAttribute.GetCallingConvention(attr, mainAttr), mod, opts.PInvokeName)
+                        .Where(x => ret.All(y => y.Name != x.Name)));
+                eps.Add(ep);
             }
 
+            epl = eps;
             return ret;
 
             NativeApiAttribute GetAttribute(MethodDefinition info, TypeDefinition containingType)
@@ -148,11 +185,12 @@ namespace Ultz.SuperInvoke
                 return attribute;
             }
 
-            void EmitParameters(ILProcessor il, Collection<ParameterDefinition> parameterInfo, IParameterMarshaller[] marshal,
-                out TypeReference[] finalTypes, out List<Action<ILProcessor>> epilogue)
+            void EmitParameters(MethodContext ctx, Collection<ParameterDefinition> parameterInfo, IParameterMarshaller[] marshal,
+                out TypeReference[] finalTypes, out List<Action<MethodContext>> epilogue)
             {
+                var il = ctx.Processor;
                 finalTypes = new TypeReference[parameterInfo.Count];
-                epilogue = new List<Action<ILProcessor>>();
+                epilogue = new List<Action<MethodContext>>();
                 for (var i = 0; i < parameterInfo.Count; i++)
                 {
                     var ili = i + 1;
@@ -175,10 +213,10 @@ namespace Ultz.SuperInvoke
                         foreach (var stage in marshal)
                         {
                             if (!stage.IsApplicable(currentType)) continue;
-                            var newType = stage.Write(currentType, il, parameterInfo[i], out var ep);
+                            var newType = stage.Write(currentType, ctx, parameterInfo[i], out var ep);
                             currentType = newType;
                             changed = true;
-                            if (!(ep is null)) epilogue.Add(ep);
+                            if (!(ep is null)) epilogue.Insert(0, ep);
                         }
                     } while (changed);
 
@@ -195,9 +233,9 @@ namespace Ultz.SuperInvoke
             }
 
             void EmitCalli(ILProcessor processor, NativeApiAttribute method, NativeApiAttribute parent,
-                MethodReference reference)
+                MethodReference reference, TypeReference[] finalTypes)
             {
-                var callSite = new CallSite(reference.ReturnType)
+                var callSite = new CallSite(mod.ImportReference(reference.ReturnType))
                 {
                     CallingConvention = NativeApiAttribute.GetCallingConvention(method, parent) switch
                     {
@@ -210,14 +248,16 @@ namespace Ultz.SuperInvoke
                     }
                 };
 
-                foreach (var parameterDefinition in reference.Parameters) callSite.Parameters.Add(parameterDefinition);
+                foreach (var type in finalTypes)
+                    callSite.Parameters.Add(new ParameterDefinition(mod.ImportReference(type)));
 
                 processor.Emit(OpCodes.Calli, callSite);
             }
 
-            void EmitReturn(ILProcessor il, MethodReturnType parameterInfo, IReturnTypeMarshaller[] marshal,
+            void EmitReturn(MethodContext ctx, MethodReturnType parameterInfo, IReturnTypeMarshaller[] marshal,
                 out TypeReference finalType)
             {
+                var il = ctx.Processor;
                 var currentType = parameterInfo.ReturnType;
                 if (parameterInfo.ReturnType.FullName != "System.Void")
                 {
@@ -228,7 +268,7 @@ namespace Ultz.SuperInvoke
                         foreach (var stage in marshal)
                         {
                             if (!stage.IsApplicable(currentType)) continue;
-                            currentType = stage.Write(currentType, il, parameterInfo);
+                            currentType = stage.Write(currentType, ctx, parameterInfo);
                             changed = true;
                         }
                     } while (changed);

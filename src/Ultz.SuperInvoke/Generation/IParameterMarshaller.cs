@@ -10,7 +10,7 @@ namespace Ultz.SuperInvoke.Generation
         bool IsApplicable(TypeReference type);
 
         // at this point, the parameter in question is at the top of the stack.
-        TypeReference Write(TypeReference currentType, ILProcessor il, ParameterDefinition originalParameter,
-            out Action<ILProcessor> epilogue);
+        TypeReference Write(TypeReference currentType, MethodContext ctx, ParameterDefinition originalParameter,
+            out Action<MethodContext> epilogue);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -11,8 +12,9 @@ namespace Ultz.SuperInvoke.Proxy
             CallingConvention conv, ModuleDefinition mod, string libName)
         {
             var ret = new MethodDefinition[2];
-            ModuleReference modRef;
-            mod.ModuleReferences.Add(modRef = new ModuleReference(libName));
+            var modRef = new ModuleReference(libName);
+            if (mod.ModuleReferences.All(x => x.Name != libName))
+                mod.ModuleReferences.Add(modRef);
             ret[0] = new MethodDefinition("proxy_" + entryPoint,
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PInvokeImpl |
                 MethodAttributes.HideBySig, mod.ImportReference(@return))

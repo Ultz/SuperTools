@@ -7,7 +7,11 @@ namespace Ultz.SuperInvoke
 {
     public struct BuilderOptions
     {
-        public static IParameterMarshaller[] DefaultParameterMarshallers { get; } = new IParameterMarshaller[0]; // TODO
+        public static IParameterMarshaller[] DefaultParameterMarshallers { get; } = 
+        {
+            new StringParameterMarshaller(),
+            new PinnableParameterMarshaller(),
+        };
 
         public static IReturnTypeMarshaller[] DefaultReturnTypeMarshallers { get; } =
             new IReturnTypeMarshaller[0]; // TODO
@@ -53,6 +57,12 @@ namespace Ultz.SuperInvoke
         /// Gets or sets the P/Invoke library name to be used in the P/Invoke proxy.
         /// </summary>
         public string PInvokeName { get; set; }
+        
+        /// <summary>
+        /// Gets or sets whether the native entry-points should be loaded as they're executed, or ahead of time upon
+        /// activation of an instance of the class.
+        /// </summary>
+        public bool UseLazyBinding { get; set; }
 
         public static BuilderOptions GetDefault(Type type)
         {
@@ -62,6 +72,7 @@ namespace Ultz.SuperInvoke
                 ParameterMarshallers = DefaultParameterMarshallers,
                 ReturnTypeMarshallers = DefaultReturnTypeMarshallers,
                 IsPInvokeProxyEnabled = true,
+                UseLazyBinding = true,
                 PInvokeName = "__Internal"
             };
         }

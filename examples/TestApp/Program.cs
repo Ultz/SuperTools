@@ -18,11 +18,7 @@ namespace TestApp
             x.Flush();
             y.Flush();
             var user32 = LibraryActivator.CreateInstance<TestClass>("user32.dll");
-            var caption = (char*)Marshal.StringToHGlobalAnsi("SuperInvoke");
-            var text = (char*)Marshal.StringToHGlobalAnsi("Hello from SuperInvoke!");
-            user32.MessageBox(IntPtr.Zero, text, caption, 0);
-            Marshal.FreeHGlobal((IntPtr) text);
-            Marshal.FreeHGlobal((IntPtr) caption);
+            user32.MessageBox(IntPtr.Zero, "SuperInvoke".ToCharArray(), "Hello from SuperInvoke!".ToCharArray(), 0);
         }
     }
 }

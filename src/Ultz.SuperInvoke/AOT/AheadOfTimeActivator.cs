@@ -24,7 +24,6 @@ namespace Ultz.SuperInvoke.AOT
             where T:NativeApiContainer
         {
             var opts = BuilderOptions.GetDefault(typeof(T));
-            opts.IsPInvokeProxyEnabled = false;
             WriteImplementation(stream, ref opts);
         }
 

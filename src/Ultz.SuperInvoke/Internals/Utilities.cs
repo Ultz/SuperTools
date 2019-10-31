@@ -43,10 +43,12 @@ namespace Ultz.SuperInvoke
             return val;
         }
 
-        public static MethodDefinition CreateEmptyDefinition(MethodDefinition refr, MethodAttributes attributes)
+        public static MethodDefinition CreateEmptyDefinition(MethodDefinition refr, MethodAttributes attributes, ModuleDefinition moduleDefinition)
         {
-            var ret = new MethodDefinition(refr.Name, attributes, refr.ReturnType);
-            foreach (var parameterDefinition in refr.Parameters) ret.Parameters.Add(new ParameterDefinition(parameterDefinition.Name, ParameterAttributes.None, parameterDefinition.ParameterType));
+            var ret = new MethodDefinition(refr.Name, attributes, moduleDefinition.ImportReference(refr.ReturnType));
+            foreach (var parameterDefinition in refr.Parameters)
+                ret.Parameters.Add(new ParameterDefinition(parameterDefinition.Name, ParameterAttributes.None,
+                    moduleDefinition.ImportReference(parameterDefinition.ParameterType)));
             foreach (var genParam in refr.GenericParameters) ret.GenericParameters.Add(genParam);
 
             return ret;
