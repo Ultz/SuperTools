@@ -7,12 +7,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Mono.Cecil" Version="0.11.0" />
+      <PackageReference Include="system.reflection.Metadata" Version="1.7.0" />
+      <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="microsoft.dotnet.platformabstractions" Version="3.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Native" />
     </ItemGroup>
 
 </Project>
