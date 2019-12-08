@@ -6,11 +6,8 @@ namespace Ultz.SuperInvoke.Builder
 {
     public class MethodSignatureWriter
     {
-        public BlobHandle GetSignature(ImplMethod method)
+        public static BlobHandle GetSignature(ImplMethod method, MetadataBuilder builder)
         {
-            // Get parameters
-            var parameters = methodBase.GetParameters();
-
             // Create method signature encoder
             var enc = new BlobEncoder(new BlobBuilder())
                 .MethodSignature(
@@ -20,29 +17,29 @@ namespace Ultz.SuperInvoke.Builder
 
             // Add return type and parameters
             enc.Parameters(
-                    parameters.Length,
+                    method.Parameters.Count,
                     (retEnc) =>
                     {
-                        if (method.Ret)
+                        if (method.ReturnType is null)
+                        {
+                            retEnc.Void();
+                        }
+                        else
+                        {
+                            method.ReturnType.Write(retEnc, builder);
+                        }
                     },
                     (parEnc) =>
                     {
-                        foreach (var par in parameters)
+                        foreach (var par in method.Parameters)
                         {
-                            if (par.ParameterType.IsByRef)
-                            {
-                                parEnc.AddParameter().Type(true).FromSystemType(par.ParameterType.GetElementType(), this);
-                            }
-                            else
-                            {
-                                parEnc.AddParameter().Type(false).FromSystemType(par.ParameterType, this);
-                            }
+                            par.Type.Write(parEnc.AddParameter(), builder);
                         }
                     }
-                );
+                ); 
 
             // Get blob
-            return GetOrAddBlob(enc.Builder);
+            return builder.GetOrAddBlob(enc.Builder);
         }
     }
 }

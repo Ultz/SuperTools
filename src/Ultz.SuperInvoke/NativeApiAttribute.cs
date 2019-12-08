@@ -6,6 +6,11 @@ namespace Ultz.SuperInvoke.Native
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class NativeApiAttribute : Attribute
     {
+        // ReSharper disable once EmptyConstructor
+        public NativeApiAttribute()
+        {
+        }
+        
         /// <summary>
         ///     Gets or sets the native entry point for this method. Ignored on classes and interfaces.
         /// </summary>

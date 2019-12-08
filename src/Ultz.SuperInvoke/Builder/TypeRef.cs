@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
@@ -18,7 +19,9 @@ namespace Ultz.SuperInvoke.Builder
         public bool HasGenericParameters => GenericParameters?.Count != 0;
         public ICollection<GenericParameter> GenericParameters { get; set; }
         public List<TypeRef> GenericInstantiation { get; set; }
+        [Obsolete("Functionality may be patchy with nested types.")]
         public bool IsNested => !(DeclaringType is null);
+        [Obsolete("Functionality may be patchy with nested types.")]
         public TypeRef DeclaringType { get; set; }
         public string FullName => $"{Namespace}.{Name}";
         public bool IsByReference { get; set; }
@@ -58,15 +61,36 @@ namespace Ultz.SuperInvoke.Builder
             };
         }
 
-        public void Write(in ReturnTypeEncoder returnTypeEncoder)
+        public void Write(in ReturnTypeEncoder returnTypeEncoder, MetadataBuilder builder)
         {
             if (MetadataType == PrimitiveTypeCode.TypedReference)
             {
                 returnTypeEncoder.TypedReference();
                 return;
             }
-            
+
+            SignatureTypeEncoder? ot;
             var t = returnTypeEncoder.Type();
+            if (IsSingleDimensionZeroBasedArray)
+            {
+                ot = t;
+                t = t.SZArray();
+            }
+            else if (ArrayDimensions != 0)
+            {
+                ot = t;
+                t.Array(out t, out var s);
+                s.Shape(ArrayDimensions, ArraySizes.ToImmutableArray(), ArrayLowerBounds.ToImmutableArray());
+            }
+
+            Write(t, builder);
+            
+            // Note: All changes here must be reflected in the ParameterTypeEncoder overload.
+        }
+
+        private void Write(in SignatureTypeEncoder t, MetadataBuilder builder)
+        {
+            
             switch (MetadataType)
             {
                 case PrimitiveTypeCode.Boolean:
@@ -170,15 +194,50 @@ namespace Ultz.SuperInvoke.Builder
                 }
                 case null:
                 {
-                    t.Type();
+                    t.Type(AddReference(builder), IsValueType);
+                    break;
                 }
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        public void Write(ParameterTypeEncoder returnTypeEncoder)
+        public List<int> ArrayLowerBounds { get; set; }
+        public List<int> ArraySizes { get; set; }
+
+        public EntityHandle AddReference(MetadataBuilder builder)
         {
+            return builder.AddTypeReference(builder.AddAssemblyReference(builder.GetOrAddString(AssemblyName.Name),
+                    AssemblyName.Version,
+                    builder.GetOrAddString(AssemblyName.CultureName),
+                    AssemblyName.GetPublicKey() is null ? default : builder.GetOrAddBlob(AssemblyName.GetPublicKey()),
+                    (AssemblyFlags) AssemblyName.Flags, default), builder.GetOrAddString(Namespace),
+                builder.GetOrAddString(Name));
+        }
+
+        public void Write(in ParameterTypeEncoder returnTypeEncoder, MetadataBuilder builder)
+        {
+            if (MetadataType == PrimitiveTypeCode.TypedReference)
+            {
+                returnTypeEncoder.TypedReference();
+                return;
+            }
+
+            SignatureTypeEncoder? ot;
+            var t = returnTypeEncoder.Type();
+            if (IsSingleDimensionZeroBasedArray)
+            {
+                ot = t;
+                t = t.SZArray();
+            }
+            else if (ArrayDimensions != 0)
+            {
+                ot = t;
+                t.Array(out t, out var s);
+                s.Shape(ArrayDimensions, ArraySizes.ToImmutableArray(), ArrayLowerBounds.ToImmutableArray());
+            }
+            
+            Write(t, builder);
         }
     }
 }
