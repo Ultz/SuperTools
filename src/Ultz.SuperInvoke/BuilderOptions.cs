@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Ultz.SuperInvoke.Builder;
 
 namespace Ultz.SuperInvoke
 {
@@ -15,6 +16,8 @@ namespace Ultz.SuperInvoke
         /// activation of an instance of the class.
         /// </summary>
         public bool UseLazyBinding { get; set; }
+
+        public IGenerator Generator { get; set; }
 
         public static BuilderOptions GetDefault(Type type)
         {

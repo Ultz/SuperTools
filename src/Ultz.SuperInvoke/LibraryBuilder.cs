@@ -3,44 +3,42 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Ultz.SuperInvoke.Builder;
 
 namespace Ultz.SuperInvoke
 {
     public class LibraryBuilder
     {
         private MetadataBuilder _builder;
+        private BlobBuilder _ilBuilder;
         private AssemblyDefinitionHandle? _assembly;
         private ModuleDefinitionHandle? _module;
 
         public LibraryBuilder()
         {
             _builder = new MetadataBuilder();
+            _ilBuilder = new BlobBuilder();
         }
 
-        public unsafe void Add(ref BuilderOptions opts)
+        public void Add(ref BuilderOptions opts)
         {
             _assembly ??= _builder.AddAssembly(_builder.GetOrAddString($"Ultz.SIG.{opts.Type.Assembly.GetName().Name}"),
                 default, _builder.GetOrAddString("en-US"), default, 0, AssemblyHashAlgorithm.None);
             _module ??= _builder.AddModule(0,
                 _builder.GetOrAddString($"Ultz.SIG.{opts.Type.Assembly.GetName().Name}.dll"),
                 _builder.GetOrAddGuid(Guid.NewGuid()), default, default);
-            if (!opts.Type.Assembly.TryGetRawMetadata(out var blob, out var blobLen))
+            if (!ImplementationBuilder.TryGetImplementationBuilder(_builder, _ilBuilder, opts.Type, opts.Generator,
+                ref opts, out var ib))
             {
-                throw new NotSupportedException("Can't read metadata for this assembly (is it a dynamic assembly?)");
+                throw new InvalidOperationException("Failed to create an implementation builder.");
             }
-            
-            var reader = new MetadataReader(blob, blobLen);
-            var ns = opts.Type.Namespace;
-            var nm = opts.Type.Name;
-            var td = reader.TypeDefinitions.FirstOrDefault(x =>
-            {
-                var t = reader.GetTypeDefinition(x);
-                return reader.GetString(t.Namespace) == ns && reader.GetString(t.Name) == nm;
-            });
-            if (td.IsNil)
-            {
-                throw new InvalidOperationException("Couldn't find type in metadata.");
-            }
+
+            ib.CreateType();
+        }
+
+        public byte[] Build()
+        {
+            // todo
         }
     }
 }

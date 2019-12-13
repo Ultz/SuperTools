@@ -17,16 +17,19 @@ namespace Ultz.SuperInvoke.Builder
         private readonly MetadataReader _mr;
         private readonly IGenerator _generator;
         private readonly BuilderOptions _opts;
+        private readonly Random _random;
         private TypeDefinition _td;
         private bool _tdFound;
 
-        internal ImplementationBuilder(MetadataBuilder mb, BlobBuilder il, MetadataReader mr, Type type, IGenerator gen, ref BuilderOptions opts)
+        internal ImplementationBuilder(MetadataBuilder mb, BlobBuilder il, MetadataReader mr, Type type, IGenerator gen,
+            ref BuilderOptions opts)
         {
             _mb = mb;
             _il = il;
             _mr = mr;
             _generator = gen;
             _opts = opts;
+            _random = new Random();
             var td = _mr.TypeDefinitions.Select(_mr.GetTypeDefinition).Select(x => new TypeDefinition?(x))
                 .FirstOrDefault(
                     x =>
@@ -74,6 +77,22 @@ namespace Ultz.SuperInvoke.Builder
             return true;
         }
 
+        public TypeDefinitionHandle CreateType()
+        {
+            var name = _mr.GetAssemblyDefinition().GetAssemblyName();
+            var bytes = new byte[4];
+            _random.NextBytes(bytes);
+            return _mb.AddTypeDefinition(TypeAttributes.Public | TypeAttributes.Class,
+                _mb.GetOrAddString("Ultz.SIG." + _mr.GetString(_td.Namespace)),
+                _mb.GetOrAddString(_mr.GetString(_td.Name) + "Native" + BitConverter.ToString(bytes).Replace("-", "")),
+                _mb.AddTypeReference(
+                    _mb.AddAssemblyReference(_mb.GetOrAddString(name.Name), name.Version,
+                        _mb.GetOrAddString(name.CultureName),
+                        name.GetPublicKey() is null ? default : _mb.GetOrAddBlob(name.GetPublicKey()),
+                        (AssemblyFlags) name.Flags, default), _mb.GetOrAddString(_mr.GetString(_td.Namespace)),
+                    _mb.GetOrAddString(_mr.GetString(_td.Name))), CreateFields(), CreateMethods());
+        }
+
         public FieldDefinitionHandle CreateFields()
         {
             var opts = _opts;
@@ -112,10 +131,10 @@ namespace Ultz.SuperInvoke.Builder
 
             // Step 2. Create work units for them
             var wip = nativeMethods.Select((x, i) => (new ImplMethod(_mb, _il, i), x.x, x.Item2)).ToArray();
-            
+
             // Step 3. Pass them to the generator, and write them to metadata
             MethodDefinitionHandle? ret = null;
-            
+
             foreach (var workUnit in wip)
             {
                 var opts = _opts;
