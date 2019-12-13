@@ -98,7 +98,7 @@ namespace Ultz.SuperInvoke.Builder
             // Note: All changes here must be reflected in the ParameterTypeEncoder overload.
         }
 
-        private void Write(in SignatureTypeEncoder t, MetadataBuilder builder)
+        public void Write(in SignatureTypeEncoder t, MetadataBuilder builder)
         {
             
             switch (MetadataType)
