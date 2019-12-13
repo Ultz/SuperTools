@@ -11,10 +11,20 @@ namespace Ultz.SuperInvoke.Builder
 {
     public class TypeRef : ICloneable
     {
+        public TypeRef()
+        {
+            
+        }
+
+        public TypeRef(TypeDefinitionHandle def)
+        {
+            InternalType = def;
+        }
         public string Name { get; set; }
         public string Namespace { get; set; }
         public bool IsValueType { get; set; }
-        public bool IsLocal { get; set; }
+        public TypeDefinitionHandle? InternalType { get; set; }
+        public bool IsExternal => !InternalType.HasValue;
         public AssemblyName AssemblyName { get; set; }
         public bool HasGenericParameters => GenericParameters?.Count != 0;
         public ICollection<GenericParameter> GenericParameters { get; set; }
@@ -238,6 +248,28 @@ namespace Ultz.SuperInvoke.Builder
             }
             
             Write(t, builder);
+        }
+
+        public TypeRef GetElementType()
+        {
+            var ret = (TypeRef) Clone();
+            ret.IsByReference = false;
+            return ret;
+        }
+
+        public EntityHandle Write(MetadataBuilder builder)
+        {
+            if (IsExternal)
+            {
+                return builder.AddTypeReference(builder.AddAssemblyReference(builder.GetOrAddString(AssemblyName.Name),
+                    AssemblyName.Version, builder.GetOrAddString(AssemblyName.CultureName),
+                    AssemblyName.GetPublicKey() is null
+                        ? default
+                        : builder.GetOrAddBlob(AssemblyName.GetPublicKey()), (AssemblyFlags) AssemblyName.Flags,
+                    default), builder.GetOrAddString(Namespace), builder.GetOrAddString(Name));
+            }
+
+            return InternalType.Value;
         }
     }
 }

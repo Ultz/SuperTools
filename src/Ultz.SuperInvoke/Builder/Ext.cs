@@ -20,28 +20,28 @@ namespace Ultz.SuperInvoke.Builder
             }
         }
         
-        internal static void AddRange(this LocalVariablesEncoder sig, IEnumerable<Local> localVariables)
+        internal static void AddRange(this LocalVariablesEncoder sig, IEnumerable<Local> localVariables, MetadataBuilder builder)
         {
             foreach (var v in localVariables)
             {
-                Add(sig, v);
+                Add(sig, v, builder);
             }
         }
         
-        internal static void Add(this LocalVariablesEncoder sig, Local localVariableInfo)
+        internal static void Add(this LocalVariablesEncoder sig, Local localVariableInfo, MetadataBuilder builder)
         {
             if (localVariableInfo.IsByRef)
             {
                 sig.AddVariable().Type(
                         true,
-                        localVariableInfo.IsPinned).Type(localVariableInfo.ElementType, localVariableInfo.IsValueType);
+                        localVariableInfo.IsPinned).Type(localVariableInfo.Type.GetElementType().Write(builder), localVariableInfo.IsValueType);
             }
             else
             {
                 sig.AddVariable().Type(
                         false,
                         localVariableInfo.IsPinned)
-                    .Type(localVariableInfo.LocalType, localVariableInfo.IsValueType);
+                    .Type(localVariableInfo.Type.Write(builder), localVariableInfo.IsValueType);
             }
         }
     }

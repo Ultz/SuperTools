@@ -24,10 +24,11 @@ namespace Ultz.SuperInvoke.Builder
             _mb = mb;
             _il = il;
             _mr = mr;
-            var td = _mr.TypeDefinitions.Select(_mr.GetTypeDefinition).Select(x => new TypeDefinition?(x)).FirstOrDefault(
-                x =>
-                    x.HasValue && _mr.GetString(x.Value.Name) == type.Name &&
-                    _mr.GetString(x.Value.Namespace) == type.Namespace);
+            var td = _mr.TypeDefinitions.Select(_mr.GetTypeDefinition).Select(x => new TypeDefinition?(x))
+                .FirstOrDefault(
+                    x =>
+                        x.HasValue && _mr.GetString(x.Value.Name) == type.Name &&
+                        _mr.GetString(x.Value.Namespace) == type.Namespace);
             _tdFound = td.HasValue;
             if (_tdFound)
             {
@@ -35,7 +36,8 @@ namespace Ultz.SuperInvoke.Builder
             }
         }
 
-        public static unsafe bool TryGetImplementationBuilder(MetadataBuilder mb, BlobBuilder ilBuilder, Type type, IGenerator generator,
+        public static unsafe bool TryGetImplementationBuilder(MetadataBuilder mb, BlobBuilder ilBuilder, Type type,
+            IGenerator generator,
             out ImplementationBuilder builder)
         {
             builder = null;
@@ -70,9 +72,8 @@ namespace Ultz.SuperInvoke.Builder
 
         public FieldDefinitionHandle CreateFields()
         {
-            
         }
-        
+
         public MethodDefinitionHandle CreateMethods()
         {
             // Step 1. Get all native methods we need to implement
@@ -93,7 +94,7 @@ namespace Ultz.SuperInvoke.Builder
                                                       _mr.GetMemberReference((MemberReferenceHandle) y?.Constructor)) ==
                                                   typeof(NativeApiAttribute).FullName
                 }))).Where(x => x.Item2.HasValue).Select(x => (x.x, CreateAttribute(x.Item2.Value))).ToArray();
-            
+
             // Step 2. Create work units for them
         }
 

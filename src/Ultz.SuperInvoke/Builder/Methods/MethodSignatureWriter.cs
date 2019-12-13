@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 
@@ -36,9 +37,16 @@ namespace Ultz.SuperInvoke.Builder
                             par.Type.Write(parEnc.AddParameter(), builder);
                         }
                     }
-                ); 
-
+                );
+            
             // Get blob
+            return builder.GetOrAddBlob(enc.Builder);
+        }
+
+        public static BlobHandle GetSignature(IList<Local> localVariables, MetadataBuilder builder)
+        {
+            var enc = new BlobEncoder(new BlobBuilder()).LocalVariableSignature(localVariables.Count);
+            enc.AddRange(localVariables);
             return builder.GetOrAddBlob(enc.Builder);
         }
     }
