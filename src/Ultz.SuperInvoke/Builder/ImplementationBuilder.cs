@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Ultz.SuperInvoke.Native;
 
@@ -82,7 +83,10 @@ namespace Ultz.SuperInvoke.Builder
             var name = _mr.GetAssemblyDefinition().GetAssemblyName();
             var bytes = new byte[4];
             _random.NextBytes(bytes);
-            return _mb.AddTypeDefinition(TypeAttributes.Public | TypeAttributes.Class,
+            var opts = _opts;
+            var methodHandle = CreateMethods(out var methods);
+            var fieldHandle = CreateFields(out var fields);
+            var ret = _mb.AddTypeDefinition(TypeAttributes.Public | TypeAttributes.Class,
                 _mb.GetOrAddString("Ultz.SIG." + _mr.GetString(_td.Namespace)),
                 _mb.GetOrAddString(_mr.GetString(_td.Name) + "Native" + BitConverter.ToString(bytes).Replace("-", "")),
                 _mb.AddTypeReference(
@@ -90,10 +94,22 @@ namespace Ultz.SuperInvoke.Builder
                         _mb.GetOrAddString(name.CultureName),
                         name.GetPublicKey() is null ? default : _mb.GetOrAddBlob(name.GetPublicKey()),
                         (AssemblyFlags) name.Flags, default), _mb.GetOrAddString(_mr.GetString(_td.Namespace)),
-                    _mb.GetOrAddString(_mr.GetString(_td.Name))), CreateFields(), CreateMethods());
+                    _mb.GetOrAddString(_mr.GetString(_td.Name))), fieldHandle, methodHandle
+            );
+            var ctor = new ImplMethod(_mb, _il, ".ctor")
+            {
+                Attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
+                             MethodAttributes.RTSpecialName,
+                CallingConvention = SignatureCallingConvention.Default,
+                ImplAttributes = (MethodImplAttributes) 768,
+                InitLocals = true
+            };
+
+            _generator.GenerateConstructor(ref opts, ctor, methods, fields);
+            return ret;
         }
 
-        public FieldDefinitionHandle CreateFields()
+        public FieldDefinitionHandle CreateFields(out IEnumerable<ImplField> res)
         {
             var opts = _opts;
             var fields = new List<ImplField>();
@@ -104,12 +120,16 @@ namespace Ultz.SuperInvoke.Builder
                 return newField;
             });
 
+            res = fields;
+
             return fields.Aggregate<ImplField, FieldDefinitionHandle?>(null,
                        (current, implField) => (FieldDefinitionHandle?) (current ?? CreateField(implField))) ?? default;
         }
 
-        public MethodDefinitionHandle CreateMethods()
+        public MethodDefinitionHandle CreateMethods(out IEnumerable<ImplMethod> methods)
         {
+            var opts = _opts;
+
             // Step 1. Get all native methods we need to implement
             var abstractMethods = _td.GetMethods().Select(_mr.GetMethodDefinition)
                 .Select(x => (x, x.GetCustomAttributes().Select(_mr.GetCustomAttribute)))
@@ -130,20 +150,21 @@ namespace Ultz.SuperInvoke.Builder
                 }))).Where(x => x.Item2.HasValue).Select(x => (x.x, CreateAttribute(x.Item2.Value))).ToArray();
 
             // Step 2. Create work units for them
-            var wip = nativeMethods.Select((x, i) => (new ImplMethod(_mb, _il, i), x.x, x.Item2)).ToArray();
+            var wip = nativeMethods
+                .Select((x, i) => (new ImplMethod(_mb, _il, _mr.GetString(x.x.Name), i), x.x, x.Item2)).ToArray();
 
             // Step 3. Pass them to the generator, and write them to metadata
             MethodDefinitionHandle? ret = null;
 
             foreach (var workUnit in wip)
             {
-                var opts = _opts;
                 _generator.GenerateImplementation(ref opts, workUnit.Item1, workUnit.Item3);
                 var handle = CreateMethod(workUnit.Item1);
                 ret ??= handle;
             }
 
-            // Step 4. Return the 
+            // Step 4. Return the first method.
+            methods = wip.Select(x => x.Item1);
             return ret ?? default;
         }
 

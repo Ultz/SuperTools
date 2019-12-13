@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -61,5 +62,29 @@ namespace Ultz.SuperInvoke
         }
 
         public Assembly BuildAndLoad() => Assembly.Load(Build());
+
+        public static Assembly CreateAssembly(IEnumerable<BuilderOptions> opts)
+        {
+            var lib = new LibraryBuilder();
+            foreach (var opt in opts)
+            {
+                var optc = opt;
+                lib.Add(ref optc);
+            }
+
+            return lib.BuildAndLoad();
+        }
+
+        public static byte[] CreateAssemblyBytes(IEnumerable<BuilderOptions> opts)
+        {
+            var lib = new LibraryBuilder();
+            foreach (var opt in opts)
+            {
+                var optc = opt;
+                lib.Add(ref optc);
+            }
+
+            return lib.Build();
+        }
     }
 }

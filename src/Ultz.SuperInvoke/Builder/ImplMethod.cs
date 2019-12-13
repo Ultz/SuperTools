@@ -1,21 +1,22 @@
-﻿﻿﻿using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Reflection;
-  using System.Reflection.Metadata;
-  using System.Reflection.Metadata.Ecma335;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 
-  namespace Ultz.SuperInvoke.Builder
+namespace Ultz.SuperInvoke.Builder
 {
     public class ImplMethod
     {
         private MetadataBuilder _mb;
         private readonly BlobBuilder _il;
 
-        public ImplMethod(MetadataBuilder mb, BlobBuilder il, int? slot = null)
+        public ImplMethod(MetadataBuilder mb, BlobBuilder il, string name, int? slot = null)
         {
             _mb = mb;
             _il = il;
+            Name = name;
             SuperInvokeSlot = slot ?? -1;
         }
 
@@ -27,34 +28,34 @@
         public MethodImplAttributes ImplAttributes { get; set; }
         public string Name { get; }
         public SignatureCallingConvention CallingConvention { get; set; }
-        public IList<GenericArgument> GenericArguments { get; } = new List<GenericArgument>();
-        public bool IsStatic { get; set; }
+        public IList<GenericArgument> GenericArguments { get; } = new List<GenericArgument>(); // todo maybe support generics?
+        public bool IsStatic => (Attributes & MethodAttributes.Static) != 0;
         public TypeRef ReturnType { get; set; }
-        public IList<Parameter> Parameters { get; } = new List<Parameter>();
+        public IList<Parameter> Parameters { get; } = new List<Parameter>(); // todo update parameters
         public int SuperInvokeSlot { get; }
 
         public StandaloneSignatureHandle GetLocals()
         {
             return _mb.AddStandaloneSignature(MethodSignatureWriter.GetSignature(LocalVariables, _mb));
         }
-        
+
         public int AddMethodBody(StandaloneSignatureHandle localVariablesSignature = default)
         {
-            var localVariables = this.LocalVariables.ToArray();
+            var localVariables = LocalVariables.ToArray();
             var localEncoder = new BlobEncoder(new BlobBuilder()).LocalVariableSignature(localVariables.Length);
             localEncoder.AddRange(localVariables, _mb);
 
-            var maxStack = this.MaxStackSize;
+            var maxStack = MaxStackSize;
             if (maxStack == -1)
             {
                 var stack = 0;
-                if (!this.IsStatic)
+                if (!IsStatic)
                 {
                     stack += 4;
                     maxStack += 4;
                 }
-                
-                foreach (var instruction in this.Body.Instructions)
+
+                foreach (var instruction in Body.Instructions)
                 {
                     switch (instruction.OpCode.OutputBehavior)
                     {
@@ -70,6 +71,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.Push1_Push1:
@@ -79,6 +81,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.PushI:
@@ -88,6 +91,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.PushI8:
@@ -97,6 +101,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.PushR4:
@@ -106,6 +111,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.PushR8:
@@ -115,6 +121,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.PushRef:
@@ -124,6 +131,7 @@
                             {
                                 maxStack = stack;
                             }
+
                             break;
                         }
                         case OutputBehaviorKind.VarPush:
@@ -135,7 +143,9 @@
                     switch (instruction.OpCode.InputBehavior)
                     {
                         case InputBehaviorKind.Pop0:
-                        {break;}
+                        {
+                            break;
+                        }
                         case InputBehaviorKind.Pop1:
                         {
                             stack -= 1;
@@ -152,7 +162,7 @@
                             break;
                         }
                         case InputBehaviorKind.PopI_Pop1:
-                            break;
+                            break; // TODO finish maxstack
                         case InputBehaviorKind.PopI_PopI:
                             break;
                         case InputBehaviorKind.PopI_PopI8:
@@ -190,16 +200,17 @@
                     }
                 }
             }
-            var codeSize = this.Body.Instructions.Sum(x => x.Length);
-            var attributes = this.InitLocals ? MethodBodyAttributes.InitLocals : MethodBodyAttributes.None;
-            var hasDynamicStackAllocation = this.Body.Instructions.Any(x => x.OpCode == OpCode.Localloc);
+
+            var codeSize = Body.Instructions.Sum(x => x.Length);
+            var attributes = InitLocals ? MethodBodyAttributes.InitLocals : MethodBodyAttributes.None;
+            var hasDynamicStackAllocation = Body.Instructions.Any(x => x.OpCode == OpCode.Localloc);
 
             // Header
             var offset = MethodBodyStreamWriter.SerializeHeader(_il, codeSize, maxStack, attributes,
                 localVariablesSignature, hasDynamicStackAllocation);
 
             // Instructions
-            MethodBodyWriter.Write(_il, this.Body.Instructions);
+            MethodBodyWriter.Write(_il, Body.Instructions);
 
             // SuperCil To-Do: Exceptions
 
