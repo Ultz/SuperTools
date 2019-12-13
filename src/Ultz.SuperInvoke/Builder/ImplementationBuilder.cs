@@ -16,14 +16,18 @@ namespace Ultz.SuperInvoke.Builder
         private readonly MetadataBuilder _mb;
         private readonly BlobBuilder _il;
         private readonly MetadataReader _mr;
+        private readonly IGenerator _generator;
+        private readonly BuilderOptions _opts;
         private TypeDefinition _td;
         private bool _tdFound;
 
-        internal ImplementationBuilder(MetadataBuilder mb, BlobBuilder il, MetadataReader mr, Type type, IGenerator gen)
+        internal ImplementationBuilder(MetadataBuilder mb, BlobBuilder il, MetadataReader mr, Type type, IGenerator gen, ref BuilderOptions opts)
         {
             _mb = mb;
             _il = il;
             _mr = mr;
+            _generator = gen;
+            _opts = opts;
             var td = _mr.TypeDefinitions.Select(_mr.GetTypeDefinition).Select(x => new TypeDefinition?(x))
                 .FirstOrDefault(
                     x =>
@@ -37,7 +41,7 @@ namespace Ultz.SuperInvoke.Builder
         }
 
         public static unsafe bool TryGetImplementationBuilder(MetadataBuilder mb, BlobBuilder ilBuilder, Type type,
-            IGenerator generator,
+            IGenerator generator, ref BuilderOptions opts,
             out ImplementationBuilder builder)
         {
             builder = null;
@@ -59,7 +63,8 @@ namespace Ultz.SuperInvoke.Builder
                 return false;
             }
 
-            builder = new ImplementationBuilder(mb, ilBuilder, new MetadataReader(meta, metaLen), type, generator);
+            builder = new ImplementationBuilder(mb, ilBuilder, new MetadataReader(meta, metaLen), type, generator,
+                ref opts);
 
             if (!builder._tdFound)
             {
@@ -96,6 +101,21 @@ namespace Ultz.SuperInvoke.Builder
                 }))).Where(x => x.Item2.HasValue).Select(x => (x.x, CreateAttribute(x.Item2.Value))).ToArray();
 
             // Step 2. Create work units for them
+            var wip = nativeMethods.Select((x, i) => (new ImplMethod(_mb, _il, i), x.x, x.Item2)).ToArray();
+            
+            // Step 3. Pass them to the generator, and write them to metadata
+            MethodDefinitionHandle? ret = null;
+            
+            foreach (var workUnit in wip)
+            {
+                var opts = _opts;
+                _generator.GenerateImplementation(ref opts, workUnit.Item1, workUnit.Item3);
+                var handle = CreateMethod(workUnit.Item1);
+                ret ??= handle;
+            }
+
+            // Step 4. Return the 
+            return ret ?? default;
         }
 
         private NativeApiAttribute CreateAttribute(CustomAttribute arg)
@@ -142,7 +162,7 @@ namespace Ultz.SuperInvoke.Builder
         {
             return _mb.AddMethodDefinition(method.Attributes, method.ImplAttributes, _mb.GetOrAddString(method.Name),
                 MethodSignatureWriter.GetSignature(method, _mb),
-                MethodBodyStreamWriter.AddMethodBody(_mb, method, _il, method.GetLocals(_mb)),
+                method.AddMethodBody(method.GetLocals()),
                 method.Parameters.Select(
                         (parameter, i) =>
                             _mb

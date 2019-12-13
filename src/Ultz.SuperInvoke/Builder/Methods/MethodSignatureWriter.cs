@@ -46,7 +46,7 @@ namespace Ultz.SuperInvoke.Builder
         public static BlobHandle GetSignature(IList<Local> localVariables, MetadataBuilder builder)
         {
             var enc = new BlobEncoder(new BlobBuilder()).LocalVariableSignature(localVariables.Count);
-            enc.AddRange(localVariables);
+            enc.AddRange(localVariables, builder);
             return builder.GetOrAddBlob(enc.Builder);
         }
     }
