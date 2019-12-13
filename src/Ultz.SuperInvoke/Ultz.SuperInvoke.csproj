@@ -12,10 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Native" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Ultz.SuperInvoke.Loader\Ultz.SuperInvoke.Loader.csproj" />
     </ItemGroup>
 

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
 using Ultz.SuperInvoke.Builder;
 
 namespace Ultz.SuperInvoke
@@ -18,6 +19,18 @@ namespace Ultz.SuperInvoke
         {
             _builder = new MetadataBuilder();
             _ilBuilder = new BlobBuilder();
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            _builder.AddTypeDefinition(
+                default,
+                default,
+                _builder.GetOrAddString("<Module>"),
+                default,
+                MetadataTokens.FieldDefinitionHandle(1),
+                MetadataTokens.MethodDefinitionHandle(1));
         }
 
         public void Add(ref BuilderOptions opts)
@@ -38,7 +51,15 @@ namespace Ultz.SuperInvoke
 
         public byte[] Build()
         {
-            // todo
+            var rootBuilder = new MetadataRootBuilder(_builder);
+            var header =
+                new PEHeaderBuilder(imageCharacteristics: Characteristics.ExecutableImage | Characteristics.Dll);
+            var peBuilder = new ManagedPEBuilder(header, rootBuilder, _ilBuilder);
+            var pe = new BlobBuilder();
+            peBuilder.Serialize(pe);
+            return pe.ToArray();
         }
+
+        public Assembly BuildAndLoad() => Assembly.Load(Build());
     }
 }
