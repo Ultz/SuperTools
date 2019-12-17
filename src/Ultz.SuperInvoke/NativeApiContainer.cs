@@ -8,10 +8,19 @@ namespace Ultz.SuperInvoke.Native
         private readonly IntPtr[] _entryPoints;
         private readonly NativeLibrary _library;
 
-        protected NativeApiContainer(NativeLibrary library, int numSlots)
+        protected NativeApiContainer(NativeApiContext ctx)
         {
-            _library = library;
-            _entryPoints = new IntPtr[numSlots];
+            _library = ctx.Library;
+            _entryPoints = new IntPtr[ctx.SlotCount ?? 0];
+            if ((ctx.Strategy & Strategy.Strategy2) != 0)
+            {
+                LoadProperties();
+            }
+        }
+
+        private void LoadProperties()
+        {
+            throw new NotImplementedException();
         }
 
         public void Dispose()

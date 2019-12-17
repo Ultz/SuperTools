@@ -20,6 +20,11 @@ namespace TestApp
             //y.Flush();
             //var user32 = LibraryActivator.CreateInstance<TestClass>("user32.dll");
             //user32.MessageBox(IntPtr.Zero, "SuperInvoke".ToCharArray(), "Hello from SuperInvoke!".ToCharArray(), 0);
+            var libBuilder = new LibraryBuilder();
+            var opts = BuilderOptions.GetDefault(typeof(TestClass2));
+            libBuilder.Add(ref opts);
+            var bytes = libBuilder.Build();
+            File.WriteAllBytes("a.dll", bytes);
         }
     }
 }

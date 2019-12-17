@@ -1,4 +1,5 @@
 ﻿using System;
+using Ultz.SuperInvoke;
 using Ultz.SuperInvoke.Loader;
 using Ultz.SuperInvoke.Native;
 
@@ -6,7 +7,7 @@ namespace TestApp
 {
     public abstract class TestClass : NativeApiContainer
     {
-        protected TestClass(NativeLibrary library, int numSlots) : base(library, numSlots)
+        protected TestClass(NativeApiContext ctx) : base(ctx)
         {
         }
 

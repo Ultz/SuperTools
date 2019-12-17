@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Ultz.SuperInvoke.Native
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property)]
     public class NativeApiAttribute : Attribute
     {
         // ReSharper disable once EmptyConstructor

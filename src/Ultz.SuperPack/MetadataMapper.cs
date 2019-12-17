@@ -398,7 +398,8 @@ namespace Ultz.SuperPack
                         il.Emit(op, new[] {Mono.Cecil.Cil.Instruction.Create(OpCodes.Nop)});
                         break;
                     case OperandType.InlineSig:
-                        throw new NotSupportedException("InlineSig");
+                        il.Emit(op, (byte[])instruction.Operand);
+                        break;
                     default:
                         throw new NotSupportedException(op.OperandType.ToString());
                 }

@@ -3,6 +3,9 @@
 // Link: https://github.com/jbevain/mono.reflection
 
 using System;
+using System.Runtime.Serialization;
+using Mono.Cecil;
+using Mono.Collections.Generic;
 
 namespace Ultz.SuperPack
 {
@@ -30,6 +33,43 @@ namespace Ultz.SuperPack
             Position += length;
             return value;
         }
+        public uint ReadCompressedUInt32 ()
+        {
+            byte first = ReadByte ();
+            if ((first & 0x80) == 0)
+                return first;
+
+            if ((first & 0x40) == 0)
+                return ((uint) (first & ~0x80) << 8)
+                       | ReadByte ();
+
+            return ((uint) (first & ~0xc0) << 24)
+                   | (uint) ReadByte () << 16
+                   | (uint) ReadByte () << 8
+                   | ReadByte ();
+        }
+
+        public int ReadCompressedInt32 ()
+        {
+            var b = Buffer[Position];
+            var u = (int) ReadCompressedUInt32 ();
+            var v = u >> 1;
+            if ((u & 1) == 0)
+                return v;
+
+            switch (b & 0xc0)
+            {
+                case 0:
+                case 0x40:
+                    return v - 0x40;
+                case 0x80:
+                    return v - 0x2000;
+                default:
+                    return v - 0x10000000;
+            }
+        }
+
+        
 
         public short ReadInt16()
         {
