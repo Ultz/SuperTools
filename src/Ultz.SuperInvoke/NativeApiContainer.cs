@@ -7,10 +7,14 @@ namespace Ultz.SuperInvoke.Native
     public abstract class NativeApiContainer : IDisposable
     {
         public static MethodInfo LoadMethod = typeof(NativeApiContainer).GetMethod(nameof(Load),
-            BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, null, new[]
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, null, new[]
             {
                 typeof(int), typeof(string)
             }, null);
+
+        internal static MethodInfo NewContextMethod = typeof(NativeApiContainer).GetMethod(nameof(CreateContext),
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, null,
+            new[] {typeof(NativeLibrary), typeof(Strategy), typeof(int?)}, null);
 
         private readonly IntPtr[] _entryPoints;
         private readonly NativeLibrary _library;
@@ -24,6 +28,9 @@ namespace Ultz.SuperInvoke.Native
                 LoadProperties();
             }
         }
+
+        protected static NativeApiContext CreateContext(NativeLibrary lib, Strategy stat, int? slotCount = null)
+            => new NativeApiContext(lib, stat, slotCount);
 
         private void LoadProperties()
         {

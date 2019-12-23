@@ -88,16 +88,14 @@ namespace Ultz.SuperInvoke.Emit
             il.Emit(OpCodes.Newobj, typeof(int?).GetConstructor(new []{typeof(int)}));
             
             // Create the new context
-            il.Emit(OpCodes.Newobj,
-                typeof(NativeApiContext).GetConstructor(
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-                    new[] {typeof(NativeLibrary), typeof(Strategy), typeof(int?)}, null));
+            il.Emit(OpCodes.Call, NativeApiContainer.NewContextMethod);
             
             // Store the new context
             var loc = il.DeclareLocal(typeof(NativeApiContext));
             il.Emit(OpCodes.Stloc, loc);
             il.Emit(OpCodes.Ldloca, loc);
 
+            il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Call,
                 typeof(NativeApiContainer).GetConstructor(
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
