@@ -36,7 +36,6 @@ using Ultz.SuperInvoke.Native;
         internal static NativeApiContainer UseStrategyOne(UnmanagedLibrary unmanagedLibrary, Type type, Strategy strat)
         {
             var ctx = new NativeApiContext(unmanagedLibrary, strat);
-            GCHandle.Alloc(unmanagedLibrary);
             return (NativeApiContainer) Activator.CreateInstance(
                 (GetImplementationInDomain(type, AppDomain.CurrentDomain) ?? LibraryBuilder
                      .CreateAssembly(BuilderOptions.GetDefault(type))
