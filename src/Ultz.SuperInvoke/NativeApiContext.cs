@@ -4,13 +4,13 @@ namespace Ultz.SuperInvoke
 {
     public readonly struct NativeApiContext
     {
-        internal NativeApiContext(NativeLibrary lib, Strategy strategy, int? slotCount = null)
+        internal NativeApiContext(UnmanagedLibrary lib, Strategy strategy, int? slotCount = null)
         {
             Library = lib;
             SlotCount = slotCount;
             Strategy = strategy;
         }
-        public NativeLibrary Library { get; }
+        public UnmanagedLibrary Library { get; }
         public int? SlotCount { get; }
         public Strategy Strategy { get; }
     }

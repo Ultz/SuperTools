@@ -1,17 +1,18 @@
 ﻿﻿using System;
 using System.Linq;
- using Ultz.SuperInvoke.Emit;
- using Ultz.SuperInvoke.Loader;
+using System.Runtime.InteropServices;
+using Ultz.SuperInvoke.Emit;
+using Ultz.SuperInvoke.Loader;
 using Ultz.SuperInvoke.Native;
 
-namespace Ultz.SuperInvoke
+ namespace Ultz.SuperInvoke
 {
     public static class LibraryActivator
     {
-        internal static T Activate<T>(NativeLibrary lib, Strategy strategy)
+        internal static T Activate<T>(UnmanagedLibrary lib, Strategy strategy)
             where T : NativeApiContainer => (T) Activate(lib, typeof(T), strategy);
 
-        internal static NativeApiContainer Activate(NativeLibrary lib, Type type, Strategy strategy)
+        internal static NativeApiContainer Activate(UnmanagedLibrary lib, Type type, Strategy strategy)
         {
             NativeApiContainer container = null;
             if (strategy == Strategy.Infer)
@@ -32,9 +33,10 @@ namespace Ultz.SuperInvoke
             return container;
         }
 
-        internal static NativeApiContainer UseStrategyOne(NativeLibrary nativeLibrary, Type type, Strategy strat)
+        internal static NativeApiContainer UseStrategyOne(UnmanagedLibrary unmanagedLibrary, Type type, Strategy strat)
         {
-            var ctx = new NativeApiContext(nativeLibrary, strat);
+            var ctx = new NativeApiContext(unmanagedLibrary, strat);
+            GCHandle.Alloc(unmanagedLibrary);
             return (NativeApiContainer) Activator.CreateInstance(
                 (GetImplementationInDomain(type, AppDomain.CurrentDomain) ?? LibraryBuilder
                      .CreateAssembly(BuilderOptions.GetDefault(type))
@@ -46,48 +48,48 @@ namespace Ultz.SuperInvoke
             .SelectMany(x => x.GetExportedTypes())
             .FirstOrDefault(x => type.IsAssignableFrom(x) && x != type);
 
-        public static T CreateInstance<T>(NativeLibrary nativeLibrary, Strategy strategy = Strategy.Infer)
+        public static T CreateInstance<T>(UnmanagedLibrary unmanagedLibrary, Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return Activate<T>(nativeLibrary, strategy);
+            return Activate<T>(unmanagedLibrary, strategy);
         }
 
         public static T CreateInstance<T>(string name, Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(name), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(name), strategy);
         }
 
         public static T CreateInstance<T>(string name, LibraryLoader loader, Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(name, loader), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(name, loader), strategy);
         }
 
         public static T CreateInstance<T>(string name, LibraryLoader loader, PathResolver resolver,
             Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(name, loader, resolver), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(name, loader, resolver), strategy);
         }
 
         public static T CreateInstance<T>(string[] names, Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(names), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(names), strategy);
         }
 
         public static T CreateInstance<T>(string[] names, LibraryLoader loader, Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(names, loader), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(names, loader), strategy);
         }
 
         public static T CreateInstance<T>(string[] names, LibraryLoader loader, PathResolver resolver,
             Strategy strategy = Strategy.Infer)
             where T : NativeApiContainer
         {
-            return CreateInstance<T>(new NativeLibrary(names, loader, resolver), strategy);
+            return CreateInstance<T>(new UnmanagedLibrary(names, loader, resolver), strategy);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Ultz.SuperInvoke.Loader
     ///     Represents a native shared library opened by the operating system.
     ///     This type can be used to load native function pointers by name.
     /// </summary>
-    public class NativeLibrary : IDisposable
+    public class UnmanagedLibrary : IDisposable
     {
         private static readonly LibraryLoader SPlatformDefaultLoader = LibraryLoader.GetPlatformDefaultLoader();
         private readonly LibraryLoader _loader;
@@ -16,7 +16,7 @@ namespace Ultz.SuperInvoke.Loader
         ///     Constructs a new NativeLibrary using the platform's default library loader.
         /// </summary>
         /// <param name="name">The name of the library to load.</param>
-        public NativeLibrary(string name) : this(name, SPlatformDefaultLoader, PathResolver.Default)
+        public UnmanagedLibrary(string name) : this(name, SPlatformDefaultLoader, PathResolver.Default)
         {
         }
 
@@ -24,7 +24,7 @@ namespace Ultz.SuperInvoke.Loader
         ///     Constructs a new NativeLibrary using the platform's default library loader.
         /// </summary>
         /// <param name="names">An ordered list of names to attempt to load.</param>
-        public NativeLibrary(string[] names) : this(names, SPlatformDefaultLoader, PathResolver.Default)
+        public UnmanagedLibrary(string[] names) : this(names, SPlatformDefaultLoader, PathResolver.Default)
         {
         }
 
@@ -33,7 +33,7 @@ namespace Ultz.SuperInvoke.Loader
         /// </summary>
         /// <param name="name">The name of the library to load.</param>
         /// <param name="loader">The loader used to open and close the library, and to load function pointers.</param>
-        public NativeLibrary(string name, LibraryLoader loader) : this(name, loader, PathResolver.Default)
+        public UnmanagedLibrary(string name, LibraryLoader loader) : this(name, loader, PathResolver.Default)
         {
         }
 
@@ -42,7 +42,7 @@ namespace Ultz.SuperInvoke.Loader
         /// </summary>
         /// <param name="names">An ordered list of names to attempt to load.</param>
         /// <param name="loader">The loader used to open and close the library, and to load function pointers.</param>
-        public NativeLibrary(string[] names, LibraryLoader loader) : this(names, loader, PathResolver.Default)
+        public UnmanagedLibrary(string[] names, LibraryLoader loader) : this(names, loader, PathResolver.Default)
         {
         }
 
@@ -52,7 +52,7 @@ namespace Ultz.SuperInvoke.Loader
         /// <param name="name">The name of the library to load.</param>
         /// <param name="loader">The loader used to open and close the library, and to load function pointers.</param>
         /// <param name="pathResolver">The path resolver, used to identify possible load targets for the library.</param>
-        public NativeLibrary(string name, LibraryLoader loader, PathResolver pathResolver)
+        public UnmanagedLibrary(string name, LibraryLoader loader, PathResolver pathResolver)
         {
             _loader = loader;
             Handle = _loader.LoadNativeLibrary(name, pathResolver);
@@ -64,7 +64,7 @@ namespace Ultz.SuperInvoke.Loader
         /// <param name="names">An ordered list of names to attempt to load.</param>
         /// <param name="loader">The loader used to open and close the library, and to load function pointers.</param>
         /// <param name="pathResolver">The path resolver, used to identify possible load targets for the library.</param>
-        public NativeLibrary(string[] names, LibraryLoader loader, PathResolver pathResolver)
+        public UnmanagedLibrary(string[] names, LibraryLoader loader, PathResolver pathResolver)
         {
             _loader = loader;
             Handle = _loader.LoadNativeLibrary(names, pathResolver);

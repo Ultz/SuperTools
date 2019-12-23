@@ -14,14 +14,14 @@ namespace Ultz.SuperInvoke.Native
 
         internal static MethodInfo NewContextMethod = typeof(NativeApiContainer).GetMethod(nameof(CreateContext),
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, null,
-            new[] {typeof(NativeLibrary), typeof(Strategy), typeof(int?)}, null);
+            new[] {typeof(UnmanagedLibrary), typeof(Strategy), typeof(int?)}, null);
 
         private readonly IntPtr[] _entryPoints;
-        private readonly NativeLibrary _library;
+        private readonly UnmanagedLibrary _lib;
 
         protected NativeApiContainer(ref NativeApiContext ctx)
         {
-            _library = ctx.Library;
+            _lib = ctx.Library;
             _entryPoints = new IntPtr[ctx.SlotCount ?? 0];
             if ((ctx.Strategy & Strategy.Strategy2) != 0)
             {
@@ -29,7 +29,7 @@ namespace Ultz.SuperInvoke.Native
             }
         }
 
-        protected static NativeApiContext CreateContext(NativeLibrary lib, Strategy stat, int? slotCount = null)
+        protected static NativeApiContext CreateContext(UnmanagedLibrary lib, Strategy stat, int? slotCount = null)
             => new NativeApiContext(lib, stat, slotCount);
 
         private void LoadProperties()
@@ -39,7 +39,7 @@ namespace Ultz.SuperInvoke.Native
 
         public void Dispose()
         {
-            _library.Dispose();
+            _lib.Dispose();
         }
 
         protected IntPtr Load(int slot, string entryPoint)
@@ -47,7 +47,7 @@ namespace Ultz.SuperInvoke.Native
             var ptr = _entryPoints[slot];
             if (ptr != IntPtr.Zero) return ptr;
 
-            ptr = _library.LoadFunction(entryPoint);
+            ptr = _lib.LoadFunction(entryPoint);
             if (ptr == IntPtr.Zero)
                 throw new EntryPointNotFoundException($"Native symbol \"{entryPoint}\" not found (slot M{slot})");
 
