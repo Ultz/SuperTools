@@ -75,6 +75,7 @@ namespace Ultz.SuperInvoke.Emit
             // Load the NativeApiContext we've already been passed,
             // so we can modify it and pass it along to the base ctor.
             il.Emit(OpCodes.Ldarga_S, (short)1);
+            il.Emit(OpCodes.Dup);
 
             // Get the native library
             il.Emit(OpCodes.Call, typeof(NativeApiContext).GetProperty(nameof(NativeApiContext.Library)).GetMethod);
