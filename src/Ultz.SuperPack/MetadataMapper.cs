@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
+using Mono.Collections.Generic;
 using CustomAttributeNamedArgument = Mono.Cecil.CustomAttributeNamedArgument;
 using EventAttributes = Mono.Cecil.EventAttributes;
 using FieldAttributes = Mono.Cecil.FieldAttributes;
@@ -398,7 +400,9 @@ namespace Ultz.SuperPack
                         il.Emit(op, new[] {Mono.Cecil.Cil.Instruction.Create(OpCodes.Nop)});
                         break;
                     case OperandType.InlineSig:
-                        il.Emit(op, (byte[])instruction.Operand);
+                        il.Emit(op,
+                            MapCallSite((byte[]) instruction.Operand, method.Module,
+                                method.DeclaringType.GetGenericArguments(), method.GetGenericArguments()));
                         break;
                     default:
                         throw new NotSupportedException(op.OperandType.ToString());
@@ -426,6 +430,101 @@ namespace Ultz.SuperPack
                             .Select(i => OffsetToInstruction(i.Offset, instructions, methodDefinition)).ToArray();
                         break;
                 }
+            }
+        }
+
+        private unsafe CallSite MapCallSite(byte[] sig, Module module, Type[] typeGenArgs, Type[] methGenArgs)
+        {
+            var b = new ByteBuffer(sig);
+            var convention = (MethodCallingConvention)b.ReadByte();
+            var parameters = new Type[b.ReadCompressedUInt32()];
+            var opIndex = -1;
+            var isOptional = false;
+            var returnType = ReadType(b, module, ref isOptional, typeGenArgs, methGenArgs);
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                parameters[i] = ReadType(b, module, ref isOptional, typeGenArgs, methGenArgs);
+                if (isOptional && opIndex == -1)
+                {
+                    opIndex = i;
+                }
+            }
+            
+            var ret = new CallSite(CreateReference(returnType));
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var t = parameters[i];
+                var tr = CreateReference(t);
+                if (i >= opIndex)
+                {
+                    tr = tr.MakeSentinelType();
+                }
+
+                ret.Parameters.Add(new ParameterDefinition(tr));
+            }
+
+            ret.CallingConvention = convention;
+            return ret;
+        }
+
+        private unsafe Type ReadType(ByteBuffer b, Module module, ref bool isOptional, Type[] typeGenArgs, Type[] methodGenArgs)
+        {
+            var elementType = (ElementType)b.ReadByte();
+
+            if (elementType == ElementType.Sentinel)
+            {
+                elementType = (ElementType)b.ReadByte();
+                isOptional = true;
+            }
+
+            if (!DecodeToken(elementType, out Type type))
+                return elementType switch
+                {
+                    ElementType.Void => typeof(void),
+                    ElementType.Boolean => typeof(bool),
+                    ElementType.Char => typeof(char),
+                    ElementType.SByte => typeof(sbyte),
+                    ElementType.Byte => typeof(byte),
+                    ElementType.Int16 => typeof(short),
+                    ElementType.UInt16 => typeof(ushort),
+                    ElementType.UInt32 => typeof(uint),
+                    ElementType.Int32 => typeof(int),
+                    ElementType.Int64 => typeof(long),
+                    ElementType.UInt64 => typeof(ulong),
+                    ElementType.Single => typeof(float),
+                    ElementType.Double => typeof(double),
+                    ElementType.String => typeof(string),
+                    ElementType.TypedReference => typeof(TypedReference),
+                    ElementType.IntPtr => typeof(IntPtr),
+                    ElementType.UIntPtr => typeof(UIntPtr),
+                    ElementType.Object => typeof(object),
+                    _ => throw new InvalidOperationException(
+                        $"{BitConverter.ToString(new[] {(byte) elementType})} is not a valid element type" +
+                        "at this point.")
+                };
+
+            return type;
+            
+            bool DecodeToken(ElementType e, out Type t)
+            {
+                if (e == ElementType.Class || e == ElementType.ValueType)
+                {
+                    try
+                    {
+                        t = module.ResolveType(b.ReadCompressedInt32() >> 2, typeGenArgs, methodGenArgs);
+                        if (t != null)
+                        {
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // do nothing
+                    }
+                }
+
+                t = null;
+                return false;
             }
         }
 

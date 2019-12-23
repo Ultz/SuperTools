@@ -8,7 +8,7 @@ namespace TestNs
 {
     public abstract class TestClass2 : NativeApiContainer
     {
-        protected TestClass2(NativeApiContext ctx) : base(ctx)
+        protected TestClass2(ref NativeApiContext ctx) : base(ref ctx)
         {
         }
 
