@@ -93,13 +93,15 @@ namespace Ultz.SuperInvoke.Emit
             // Store the new context
             var loc = il.DeclareLocal(typeof(NativeApiContext));
             il.Emit(OpCodes.Stloc, loc);
-            il.Emit(OpCodes.Ldloca, loc);
-
+            
+            // Call the base constructor
             il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldloca, loc);
             il.Emit(OpCodes.Call,
                 typeof(NativeApiContainer).GetConstructor(
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
                     new[] {typeof(NativeApiContext).MakeByRefType()}, null));
+
             if (!lazy)
             {
                 for (var i = 0; i < slotEntryPoints.Count; i++)
