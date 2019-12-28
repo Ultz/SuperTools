@@ -144,5 +144,11 @@ namespace Ultz.SuperPack
             if (Position + count > Buffer.Length)
                 throw new ArgumentOutOfRangeException();
         }
+
+        public byte PeekByte()
+        {
+            CheckCanRead(1);
+            return Buffer[Position + 1];
+        }
     }
 }

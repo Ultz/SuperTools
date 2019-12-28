@@ -477,6 +477,22 @@ namespace Ultz.SuperPack
                 isOptional = true;
             }
 
+            var ptrLevels = 0;
+            var byRef = false;
+            while (elementType == ElementType.Ptr || elementType == ElementType.ByRef)
+            {
+                if (elementType == ElementType.Ptr)
+                {
+                    ptrLevels += 1;
+                }
+                else if (elementType == ElementType.ByRef)
+                {
+                    byRef = true;
+                }
+
+                elementType = (ElementType) b.ReadByte();
+            }
+
             if (!DecodeToken(elementType, out Type type))
                 return elementType switch
                 {
@@ -502,6 +518,16 @@ namespace Ultz.SuperPack
                         $"{BitConverter.ToString(new[] {(byte) elementType})} is not a valid element type" +
                         "at this point.")
                 };
+
+            for (var i = 0; i < ptrLevels; i++)
+            {
+                type = type.MakePointerType();
+            }
+
+            if (byRef)
+            {
+                type = type.MakeByRefType();
+            }
 
             return type;
             
