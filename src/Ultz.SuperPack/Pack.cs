@@ -22,5 +22,12 @@ namespace Ultz.SuperPack
             var assemblyDefinition = MetadataMapper.MapAssembly(assembly);
             assemblyDefinition.Write(stream);
         }
+
+        public static byte[] Save(this Assembly assembly)
+        {
+            using var stream = new MemoryStream();
+            Save(assembly, stream);
+            return stream.ToArray();
+        }
     }
 }

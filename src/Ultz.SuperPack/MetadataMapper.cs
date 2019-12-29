@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
+using Mono.Collections.Generic;
 using CustomAttributeNamedArgument = Mono.Cecil.CustomAttributeNamedArgument;
 using EventAttributes = Mono.Cecil.EventAttributes;
 using FieldAttributes = Mono.Cecil.FieldAttributes;
@@ -55,7 +58,6 @@ namespace Ultz.SuperPack
 
             MapCustomAttributes(_assembly, _assemblyDefinition);
             MapCustomAttributes(_assembly.ManifestModule, _assemblyDefinition.MainModule);
-
             return _assemblyDefinition;
         }
 
@@ -398,7 +400,10 @@ namespace Ultz.SuperPack
                         il.Emit(op, new[] {Mono.Cecil.Cil.Instruction.Create(OpCodes.Nop)});
                         break;
                     case OperandType.InlineSig:
-                        throw new NotSupportedException("InlineSig");
+                        il.Emit(op,
+                            MapCallSite((byte[]) instruction.Operand, method.Module,
+                                method.DeclaringType.GetGenericArguments(), method.GetGenericArguments()));
+                        break;
                     default:
                         throw new NotSupportedException(op.OperandType.ToString());
                 }
@@ -425,6 +430,128 @@ namespace Ultz.SuperPack
                             .Select(i => OffsetToInstruction(i.Offset, instructions, methodDefinition)).ToArray();
                         break;
                 }
+            }
+        }
+
+        private unsafe CallSite MapCallSite(byte[] sig, Module module, Type[] typeGenArgs, Type[] methGenArgs)
+        {
+            var b = new ByteBuffer(sig);
+            var convention = (MethodCallingConvention) b.ReadByte();
+            var parameters = new Type[b.ReadCompressedUInt32()];
+            var opIndex = -1;
+            var isOptional = false;
+            var returnType = ReadType(b, module, ref isOptional, typeGenArgs, methGenArgs);
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                parameters[i] = ReadType(b, module, ref isOptional, typeGenArgs, methGenArgs);
+                if (isOptional && opIndex == -1)
+                {
+                    opIndex = i;
+                }
+            }
+
+            var ret = new CallSite(CreateReference(returnType));
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var t = parameters[i];
+                var tr = CreateReference(t);
+                if (i >= opIndex)
+                {
+                    tr = tr.MakeSentinelType();
+                }
+
+                ret.Parameters.Add(new ParameterDefinition(tr));
+            }
+
+            ret.CallingConvention = convention;
+            return ret;
+        }
+
+        private unsafe Type ReadType(ByteBuffer b, Module module, ref bool isOptional, Type[] typeGenArgs,
+            Type[] methodGenArgs)
+        {
+            var elementType = (ElementType) b.ReadByte();
+
+            if (elementType == ElementType.Sentinel)
+            {
+                elementType = (ElementType) b.ReadByte();
+                isOptional = true;
+            }
+
+            var ptrLevels = 0;
+            var byRef = false;
+            while (elementType == ElementType.Ptr || elementType == ElementType.ByRef)
+            {
+                if (elementType == ElementType.Ptr)
+                {
+                    ptrLevels += 1;
+                }
+                else if (elementType == ElementType.ByRef)
+                {
+                    byRef = true;
+                }
+
+                elementType = (ElementType) b.ReadByte();
+            }
+
+            if (!DecodeToken(elementType, out Type type))
+                return elementType switch
+                {
+                    ElementType.Void => typeof(void),
+                    ElementType.Boolean => typeof(bool),
+                    ElementType.Char => typeof(char),
+                    ElementType.SByte => typeof(sbyte),
+                    ElementType.Byte => typeof(byte),
+                    ElementType.Int16 => typeof(short),
+                    ElementType.UInt16 => typeof(ushort),
+                    ElementType.UInt32 => typeof(uint),
+                    ElementType.Int32 => typeof(int),
+                    ElementType.Int64 => typeof(long),
+                    ElementType.UInt64 => typeof(ulong),
+                    ElementType.Single => typeof(float),
+                    ElementType.Double => typeof(double),
+                    ElementType.String => typeof(string),
+                    ElementType.TypedReference => typeof(TypedReference),
+                    ElementType.IntPtr => typeof(IntPtr),
+                    ElementType.UIntPtr => typeof(UIntPtr),
+                    ElementType.Object => typeof(object),
+                    _ => throw new InvalidOperationException(
+                        $"{BitConverter.ToString(new[] {(byte) elementType})} is not a valid element type" +
+                        "at this point.")
+                };
+
+            for (var i = 0; i < ptrLevels; i++)
+            {
+                type = type.MakePointerType();
+            }
+
+            if (byRef)
+            {
+                type = type.MakeByRefType();
+            }
+
+            return type;
+
+            bool DecodeToken(ElementType e, out Type t)
+            {
+                if (e == ElementType.Class || e == ElementType.ValueType)
+                {
+                    try
+                    {
+                        t = module.ResolveType(b.ReadCompressedInt32() >> 2, typeGenArgs, methodGenArgs);
+                        if (t != null)
+                        {
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // do nothing
+                    }
+                }
+
+                t = null;
+                return false;
             }
         }
 
@@ -632,6 +759,35 @@ namespace Ultz.SuperPack
             throw new NotSupportedException("OpCode not found: " + instruction.OpCode.Name);
         }
 
+        private static AssemblyName _nsName = Assembly.Load("netstandard").GetName();
+        private static AssemblyNameReference _nsNameCecil = new AssemblyNameReference(_nsName.Name, _nsName.Version);
+        private bool _nsAdded = false;
+#if NETSTANDARD2_1
+        private bool IsNs(string name) => Private.NSMap.NSMap.IsNetStandard(name);
+#else
+        private bool IsNs(string name) => false;
+#endif
+
+        private Type GetElementTypeAbsolute(Type type)
+        {
+            var ret = type;
+            if (ret.IsByRef)
+            {
+                ret = ret.GetElementType();
+            }
+
+            while (ret.IsArray)
+            {
+                ret = ret.GetElementType();
+            }
+
+            while (ret.IsPointer)
+            {
+                ret = ret.GetElementType();
+            }
+
+            return ret;
+        }
         private TypeReference CreateReference(Type type)
         {
             return MapReference(_moduleDefinition.ImportReference(type));
@@ -657,7 +813,7 @@ namespace Ultz.SuperPack
 
         private MethodReference CreateReference(MethodBase method, MethodReference context)
         {
-            var reference = _moduleDefinition.Import(method, context);
+            var reference = _moduleDefinition.ImportReference(method, context);
             MapReference(reference.GetElementMethod().DeclaringType);
             MapReference(reference.ReturnType);
             MapGenericArguments(reference);
@@ -701,12 +857,38 @@ namespace Ultz.SuperPack
 
             var reference = (AssemblyNameReference) type.Scope;
             if (reference.FullName != _assemblyDefinition.FullName)
+            {
+                if (IsNs(GetReflectionName(type)))
+                {
+                    if (!_nsAdded)
+                    {
+                        _nsAdded = true;
+                        _moduleDefinition.AssemblyReferences.Add(_nsNameCecil);
+                    }
+
+                    type.Scope = _nsNameCecil;
+                    return type;
+                }
+
                 return type;
+            }
 
             type.GetElementType().Scope = _moduleDefinition;
             _moduleDefinition.AssemblyReferences.Remove(reference);
             return type;
         }
+        
+        private static string GetReflectionName(TypeReference type)
+        {
+            if (type.IsGenericInstance)
+            {
+                var genericInstance = (GenericInstanceType)type;
+                return
+                    $"{genericInstance.Namespace}.{type.Name}[{string.Join(",", genericInstance.GenericArguments.Select(p => GetReflectionName(p)).ToArray())}]";
+            }
+            return type.FullName;
+        }
+        
 
         private void MapElementType(TypeReference type)
         {

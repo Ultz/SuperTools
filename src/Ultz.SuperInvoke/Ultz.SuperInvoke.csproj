@@ -7,12 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Mono.Cecil" Version="0.11.0" />
+      <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+      <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.7.0" />
+      <PackageReference Include="system.reflection.Metadata" Version="1.7.0" />
+      <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="microsoft.dotnet.platformabstractions" Version="3.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.0.0" />
+      <ProjectReference Include="..\Ultz.SuperInvoke.Loader\Ultz.SuperInvoke.Loader.csproj" />
     </ItemGroup>
 
 </Project>

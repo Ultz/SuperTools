@@ -4,8 +4,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.Serialization;
+using Mono.Cecil;
+using Mono.Collections.Generic;
+using TypeReference = Mono.Cecil.TypeReference;
 
 namespace Ultz.SuperPack
 {
@@ -171,7 +176,7 @@ namespace Ultz.SuperPack
                     instruction.Operand = _il.ReadInt64();
                     break;
                 case OperandType.InlineSig:
-                    instruction.Operand = _module.ResolveSignature(_il.ReadInt32());
+                    instruction.Operand =  _module.ResolveSignature(_il.ReadInt32());
                     break;
                 case OperandType.InlineString:
                     instruction.Operand = _module.ResolveString(_il.ReadInt32());

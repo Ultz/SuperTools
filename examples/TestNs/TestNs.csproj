@@ -9,4 +9,8 @@
       <ProjectReference Include="..\..\src\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.7.0" />
+    </ItemGroup>
+
 </Project>
