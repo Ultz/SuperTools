@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using Ultz.SuperInvoke.Native;
 
 namespace Ultz.SuperInvoke.Emit
@@ -19,17 +20,24 @@ namespace Ultz.SuperInvoke.Emit
             }
         }
 
-        public virtual void EmitEntryPoint(in MethodGenerationContext ctx)
+        public virtual void EmitEntryPoint(in MethodGenerationContext ctx) =>
+            EmitEntryPoint(ctx.IL, ctx.Slot, ctx.EntryPoint);
+
+        internal void EmitEntryPoint(ILGenerator il, int slot, string entryPoint)
         {
-            ctx.IL.Emit(OpCodes.Ldarg_0);
-            ctx.IL.Emit(OpCodes.Ldc_I4, ctx.Slot);
-            ctx.IL.Emit(OpCodes.Ldstr, ctx.EntryPoint);
-            ctx.IL.Emit(OpCodes.Call, NativeApiContainer.LoadMethod);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldc_I4, slot);
+            il.Emit(OpCodes.Ldstr, entryPoint);
+            il.Emit(OpCodes.Call, NativeApiContainer.LoadMethod);
         }
 
-        public virtual void EmitNativeCall(in MethodGenerationContext ctx) =>
-            ctx.IL.EmitCalli(ctx.Convention, NativeReturnType ?? ctx.OriginalMethod.ReturnType,
-                NativeParameterTypes ?? ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray());
+        public virtual void EmitNativeCall(in MethodGenerationContext ctx) => EmitNativeCall(ctx.IL, ctx.Convention,
+            ctx.OriginalMethod, NativeReturnType, NativeParameterTypes);
+
+        internal void EmitNativeCall(ILGenerator il, CallingConvention convention, MethodInfo originalMethod,
+            Type returnType, Type[] parameters) =>
+            il.EmitCalli(convention, returnType ?? originalMethod.ReturnType,
+                parameters ?? originalMethod.GetParameters().Select(x => x.ParameterType).ToArray());
 
         public virtual void EmitEpilogue(in MethodGenerationContext ctx)
         {
@@ -40,7 +48,7 @@ namespace Ultz.SuperInvoke.Emit
             ctx.IL.Emit(OpCodes.Ret);
         }
 
-        public void GenerateMethod(in MethodGenerationContext ctx)
+        public virtual void GenerateMethod(in MethodGenerationContext ctx)
         {
             EmitPrologue(ctx);
             EmitEntryPoint(ctx);
