@@ -71,18 +71,11 @@ namespace Ultz.SuperInvoke.Emit
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName |
                 MethodAttributes.RTSpecialName, CallingConventions.Standard, new[] {typeof(NativeApiContext).MakeByRefType()});
             var il = ctor.GetILGenerator();
-            
-            // Load the NativeApiContext we've already been passed,
-            // so we can modify it and pass it along to the base ctor.
-            il.Emit(OpCodes.Ldarga_S, (short)1);
-            il.Emit(OpCodes.Dup);
 
-            // Get the native library
-            il.Emit(OpCodes.Call, typeof(NativeApiContext).GetProperty(nameof(NativeApiContext.Library)).GetMethod);
-            
-            // Get the strategy
-            il.Emit(OpCodes.Call, typeof(NativeApiContext).GetProperty(nameof(NativeApiContext.Strategy)).GetMethod);
-            
+            // Load the NativeApiContext we've already been passed,
+            // so we can pass it to NativeApiContainer.CreateContext()
+            il.Emit(OpCodes.Ldarg_1);
+
             // Push the nullable for the slot count onto the stack
             il.Emit(OpCodes.Ldc_I4, slotEntryPoints.Count);
             il.Emit(OpCodes.Newobj, typeof(int?).GetConstructor(new []{typeof(int)}));

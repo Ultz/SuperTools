@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.Serialization;
 using Mono.Cecil;
 using Mono.Collections.Generic;

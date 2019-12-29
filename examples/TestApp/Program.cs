@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using TestNs;
@@ -12,7 +13,7 @@ namespace TestApp
 {
     class Program
     {
-        private const bool AotTest = false;
+        private const bool AotTest = true;
         static unsafe void Main(string[] args)
         {
             //var x = File.OpenWrite("b.dll");
@@ -29,9 +30,10 @@ namespace TestApp
                 var opts = BuilderOptions.GetDefault(typeof(TestClass2));
                 libBuilder.Add(opts);
                 var bytes = libBuilder.BuildBytes();
+                File.WriteAllBytes("a.dll", bytes);
             }
 
-            var lib = LibraryActivator.CreateInstance<TestClass>("kernel32");
+            var lib = LibraryActivator.CreateInstance<TestClass>("user32");
             var a = Marshal.StringToHGlobalAnsi("SuperInvoke");
             var b = Marshal.StringToHGlobalAnsi("Hello from SuperInvoke!");
             lib.MessageBox(default, (char*) a, (char*) b, 0);

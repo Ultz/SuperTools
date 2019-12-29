@@ -14,7 +14,7 @@ namespace Ultz.SuperInvoke.Native
 
         internal static MethodInfo NewContextMethod = typeof(NativeApiContainer).GetMethod(nameof(CreateContext),
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, null,
-            new[] {typeof(UnmanagedLibrary), typeof(Strategy), typeof(int?)}, null);
+            new[] {typeof(NativeApiContext).MakeByRefType(), typeof(int?)}, null);
 
         private readonly IntPtr[] _entryPoints;
         private readonly UnmanagedLibrary _lib;
@@ -29,8 +29,8 @@ namespace Ultz.SuperInvoke.Native
             }
         }
 
-        protected static NativeApiContext CreateContext(UnmanagedLibrary lib, Strategy stat, int? slotCount = null)
-            => new NativeApiContext(lib, stat, slotCount);
+        protected static NativeApiContext CreateContext(ref NativeApiContext ctx, int? slotCount)
+            => new NativeApiContext(ctx.Library, ctx.Strategy, slotCount);
 
         private void LoadProperties()
         {

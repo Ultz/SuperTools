@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
@@ -57,7 +58,6 @@ namespace Ultz.SuperPack
 
             MapCustomAttributes(_assembly, _assemblyDefinition);
             MapCustomAttributes(_assembly.ManifestModule, _assemblyDefinition.MainModule);
-
             return _assemblyDefinition;
         }
 
@@ -436,7 +436,7 @@ namespace Ultz.SuperPack
         private unsafe CallSite MapCallSite(byte[] sig, Module module, Type[] typeGenArgs, Type[] methGenArgs)
         {
             var b = new ByteBuffer(sig);
-            var convention = (MethodCallingConvention)b.ReadByte();
+            var convention = (MethodCallingConvention) b.ReadByte();
             var parameters = new Type[b.ReadCompressedUInt32()];
             var opIndex = -1;
             var isOptional = false;
@@ -449,7 +449,7 @@ namespace Ultz.SuperPack
                     opIndex = i;
                 }
             }
-            
+
             var ret = new CallSite(CreateReference(returnType));
             for (var i = 0; i < parameters.Length; i++)
             {
@@ -467,13 +467,14 @@ namespace Ultz.SuperPack
             return ret;
         }
 
-        private unsafe Type ReadType(ByteBuffer b, Module module, ref bool isOptional, Type[] typeGenArgs, Type[] methodGenArgs)
+        private unsafe Type ReadType(ByteBuffer b, Module module, ref bool isOptional, Type[] typeGenArgs,
+            Type[] methodGenArgs)
         {
-            var elementType = (ElementType)b.ReadByte();
+            var elementType = (ElementType) b.ReadByte();
 
             if (elementType == ElementType.Sentinel)
             {
-                elementType = (ElementType)b.ReadByte();
+                elementType = (ElementType) b.ReadByte();
                 isOptional = true;
             }
 
@@ -530,7 +531,7 @@ namespace Ultz.SuperPack
             }
 
             return type;
-            
+
             bool DecodeToken(ElementType e, out Type t)
             {
                 if (e == ElementType.Class || e == ElementType.ValueType)
@@ -758,6 +759,35 @@ namespace Ultz.SuperPack
             throw new NotSupportedException("OpCode not found: " + instruction.OpCode.Name);
         }
 
+        private static AssemblyName _nsName = Assembly.Load("netstandard").GetName();
+        private static AssemblyNameReference _nsNameCecil = new AssemblyNameReference(_nsName.Name, _nsName.Version);
+        private bool _nsAdded = false;
+#if NETSTANDARD2_1
+        private bool IsNs(string name) => Private.NSMap.NSMap.IsNetStandard(name);
+#else
+        private bool IsNs(string name) => false;
+#endif
+
+        private Type GetElementTypeAbsolute(Type type)
+        {
+            var ret = type;
+            if (ret.IsByRef)
+            {
+                ret = ret.GetElementType();
+            }
+
+            while (ret.IsArray)
+            {
+                ret = ret.GetElementType();
+            }
+
+            while (ret.IsPointer)
+            {
+                ret = ret.GetElementType();
+            }
+
+            return ret;
+        }
         private TypeReference CreateReference(Type type)
         {
             return MapReference(_moduleDefinition.ImportReference(type));
@@ -783,7 +813,7 @@ namespace Ultz.SuperPack
 
         private MethodReference CreateReference(MethodBase method, MethodReference context)
         {
-            var reference = _moduleDefinition.Import(method, context);
+            var reference = _moduleDefinition.ImportReference(method, context);
             MapReference(reference.GetElementMethod().DeclaringType);
             MapReference(reference.ReturnType);
             MapGenericArguments(reference);
@@ -827,12 +857,38 @@ namespace Ultz.SuperPack
 
             var reference = (AssemblyNameReference) type.Scope;
             if (reference.FullName != _assemblyDefinition.FullName)
+            {
+                if (IsNs(GetReflectionName(type)))
+                {
+                    if (!_nsAdded)
+                    {
+                        _nsAdded = true;
+                        _moduleDefinition.AssemblyReferences.Add(_nsNameCecil);
+                    }
+
+                    type.Scope = _nsNameCecil;
+                    return type;
+                }
+
                 return type;
+            }
 
             type.GetElementType().Scope = _moduleDefinition;
             _moduleDefinition.AssemblyReferences.Remove(reference);
             return type;
         }
+        
+        private static string GetReflectionName(TypeReference type)
+        {
+            if (type.IsGenericInstance)
+            {
+                var genericInstance = (GenericInstanceType)type;
+                return
+                    $"{genericInstance.Namespace}.{type.Name}[{string.Join(",", genericInstance.GenericArguments.Select(p => GetReflectionName(p)).ToArray())}]";
+            }
+            return type.FullName;
+        }
+        
 
         private void MapElementType(TypeReference type)
         {
