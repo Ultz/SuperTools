@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -6,24 +7,32 @@ namespace Ultz.SuperInvoke.Marshalling
 {
     public readonly struct MethodMarshalContext
     {
-        private readonly Action<MethodInfo, Type, Type[], Type[], Type[], Type[][], Type[][], ILGenerator>
+        private readonly Action<MethodInfo, Type, Type[], Type[], Type[], Type[][], Type[][], CustomAttributeBuilder[],
+                CustomAttributeBuilder[][], ILGenerator>
             _emitNativeCall;
 
-        public MethodInfo OriginalMethod { get; }
-        public MethodBuilder DestinationMethod { get; }
+        public MethodInfo PreviousMethod { get; }
+        public MethodBuilder Method { get; }
 
         public MethodMarshalContext(MethodInfo og, MethodBuilder dest,
-            Action<MethodInfo, Type, Type[], Type[], Type[], Type[][], Type[][], ILGenerator> emitNativeCall)
+            Action<MethodInfo, Type, Type[], Type[], Type[], Type[][], Type[][], CustomAttributeBuilder[],
+                CustomAttributeBuilder[][], ILGenerator> emitNativeCall)
         {
             _emitNativeCall = emitNativeCall;
-            OriginalMethod = og;
-            DestinationMethod = dest;
+            PreviousMethod = og;
+            Method = dest;
         }
 
-        public void EmitNativeCall(MethodInfo wip, Type returnType, Type[] returnTypeReqModifiers,
+        public CustomAttributeBuilder[] CloneReturnAttributes() => PreviousMethod.ReturnParameter.CloneAttributes();
+
+        public CustomAttributeBuilder[][] CloneParameterAttributes() =>
+            PreviousMethod.GetParameters().Select(x => x.CloneAttributes()).ToArray();
+
+        public void EmitNativeCall(Type returnType, Type[] returnTypeReqModifiers,
             Type[] returnTypeOptModifiers, Type[] paramTypes, Type[][] requiredModifiers,
-            Type[][] optionalModifiers, ILGenerator il) =>
-            _emitNativeCall(wip, returnType, returnTypeReqModifiers, returnTypeOptModifiers, paramTypes,
-                requiredModifiers, optionalModifiers, il);
+            Type[][] optionalModifiers, CustomAttributeBuilder[] rcas, CustomAttributeBuilder[][] pcas,
+            ILGenerator il) =>
+            _emitNativeCall(Method, returnType, returnTypeReqModifiers, returnTypeOptModifiers, paramTypes,
+                requiredModifiers, optionalModifiers, rcas, pcas, il);
     }
 }
