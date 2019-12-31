@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 
-namespace Ultz.SuperInvoke.Marshalling
+namespace Ultz.SuperInvoke.InteropServices
 {
     public class BoolMarshaller : IMarshaller
     {
@@ -16,12 +16,12 @@ namespace Ultz.SuperInvoke.Marshalling
             var il = ctx.Method.GetILGenerator();
             
             // Prologue
-            var op = ctx.Method.GetParameters();
+            var op = ctx.Parameters;
             var pTypes = new Type[op.Length];
             for (var i = 0; i < op.Length; i++)
             {
                 var p = op[i];
-                if (p.ParameterType == typeof(bool))
+                if (p.Type == typeof(bool))
                 {
                     var unmanagedType = p.GetUnmanagedType() ?? UnmanagedType.U1;
                     var @true = il.DefineLabel();
@@ -40,17 +40,18 @@ namespace Ultz.SuperInvoke.Marshalling
                 }
                 else
                 {
-                    pTypes[i] = p.ParameterType;
+                    pTypes[i] = p.Type;
+                    il.Emit(OpCodes.Ldarg, i + 1);
                 }
             }
 
-            var returnUnmanagedType = ctx.Method.ReturnParameter.GetUnmanagedType() ?? UnmanagedType.U1;
+            var returnUnmanagedType = ctx.ReturnParameter.GetUnmanagedType() ?? UnmanagedType.U1;
             var returnType = ctx.Method.ReturnType == typeof(bool)
                 ? GetType(returnUnmanagedType)
                 : ctx.Method.ReturnType;
 
             // Call
-            ctx.EmitNativeCall(returnType, null, null, pTypes, null, null, ctx.CloneReturnAttributes(),
+            ctx.EmitNativeCall(returnType, pTypes, ctx.CloneReturnAttributes(),
                 ctx.CloneParameterAttributes(), il);
             
             // Epilogue

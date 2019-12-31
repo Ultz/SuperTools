@@ -1,15 +1,20 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Ultz.SuperInvoke.Emit;
 
-namespace Ultz.SuperInvoke.Marshalling
+namespace Ultz.SuperInvoke.InteropServices
 {
     public class Marshaller : Generator
     {
         private static readonly Generator BaseGenerator = new Generator();
+
+        public static IMarshaller[] DefaultStages { get; } = 
+        {
+            new PinObjectMarshaller(),
+            new BoolMarshaller()
+        };
         public IMarshaller[] Stages { get; set; }
         public override void GenerateMethod(in MethodGenerationContext ctx) => Marshal(ctx);
 
@@ -37,19 +42,18 @@ namespace Ultz.SuperInvoke.Marshalling
                 return;
             }
 
-            // Generate all methods, keeping track of the first diverged method.
-            MethodBuilder entry;
-            firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod,
-                entry = typeBuilder.DefineMethod(
-                    ctx.OriginalMethod.Name,
-                    MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
-                    ctx.OriginalMethod.CallingConvention, ctx.OriginalMethod.ReturnType,
-                    ctx.OriginalMethod.ReturnParameter?.GetRequiredCustomModifiers(),
-                    ctx.OriginalMethod.ReturnParameter?.GetOptionalCustomModifiers(),
-                    ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray(),
-                    ctx.OriginalMethod.GetParameters().Select(x => x.GetRequiredCustomModifiers()).ToArray(),
-                    ctx.OriginalMethod.GetParameters().Select(x => x.GetOptionalCustomModifiers()).ToArray()),
-                EmitCall));
+            // Define the first marshalling wrapper
+            var entry = typeBuilder.DefineMethod(
+                GetName(firstStage, ctx.OriginalMethod.Name, iteration++),
+                MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
+                ctx.OriginalMethod.CallingConvention, ctx.OriginalMethod.ReturnType,
+                ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray());
+
+            // Generate the marshalling wrappers (the first one will call EmitCall, which will then gen the next, etc.)
+            firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod, entry,
+                CreateMarshalContext(ctx.OriginalMethod.ReturnParameter),
+                ctx.OriginalMethod.GetParameters().Select(CreateMarshalContext).ToArray(), EmitCall
+            ));
 
             // Emit the actual method using the default generator
             BaseGenerator.EmitPrologue(ctx); // pass all parameters as-is
@@ -58,9 +62,7 @@ namespace Ultz.SuperInvoke.Marshalling
             BaseGenerator.EmitReturn(ctx); // call the default return generator
 
             // A recursive local function for handling generating & calling the next wrapper from the previous wrapper.
-            void EmitCall(MethodInfo wip, Type returnType, Type[] paramTypes, Type[] returnTypeReqModifiers,
-                Type[] returnTypeOptModifiers, Type[][] requiredCustomModifiers,
-                Type[][] optionalCustomModifiers, CustomAttributeBuilder[] rcas, CustomAttributeBuilder[][] pcas,
+            void EmitCall(MethodBuilder wip, ParameterMarshalContext ret, ParameterMarshalContext[] parameters,
                 ILGenerator il)
             {
                 var nextStage = GetNextStage(wip, index, Stages, out index);
@@ -68,19 +70,27 @@ namespace Ultz.SuperInvoke.Marshalling
                 // If no more stages are available, emit the native call and go home.
                 if (nextStage is null)
                 {
+                    NativeReturnType = ret.Type;
+                    NativeParameterTypes = parameters.Select(x => x.Type).ToArray();
                     BaseGenerator.EmitEntryPoint(il, ctx.Slot, ctx.EntryPoint);
-                    BaseGenerator.EmitNativeCall(il, ctx.Convention, wip, returnType, paramTypes);
+                    BaseGenerator.EmitNativeCall(il, ctx.Convention, wip, ret.Type,
+                        parameters.Select(x => x.Type).ToArray());
                 }
                 else
                 {
                     var call = nextStage.Marshal(new MethodMarshalContext(wip, typeBuilder.DefineMethod(
-                        GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
-                        MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
-                        wip.CallingConvention, returnType, returnTypeReqModifiers, returnTypeOptModifiers,
-                        paramTypes, requiredCustomModifiers, optionalCustomModifiers), EmitCall));
+                            GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
+                            MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
+                            wip.CallingConvention, ret.Type, parameters.Select(x => x.Type).ToArray()), ret, parameters,
+                        EmitCall));
                     il.Emit(OpCodes.Call, call);
                 }
             }
+
+            ParameterMarshalContext CreateMarshalContext(ParameterInfo inf) => new ParameterMarshalContext(
+                inf.ParameterType,
+                inf.CloneAttributes(),
+                inf.GetCustomAttributesData().ToArray());
         }
 
         private static string GetName(IMarshaller marshaller, string ogName, int iteration) =>
