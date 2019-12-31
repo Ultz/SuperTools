@@ -8,13 +8,14 @@ namespace Ultz.SuperInvoke.InteropServices
 {
     public class BoolMarshaller : IMarshaller
     {
-        public bool CanMarshal(MethodInfo og) => og.ReturnType == typeof(bool) ||
-                                                 og.GetParameters().Any(x => x.ParameterType == typeof(bool));
+        public bool CanMarshal(in ParameterMarshalContext returnType, ParameterMarshalContext[] parameters) =>
+            returnType.Type == typeof(bool) ||
+            parameters.Any(x => x.Type == typeof(bool));
 
         public MethodBuilder Marshal(in MethodMarshalContext ctx)
         {
             var il = ctx.Method.GetILGenerator();
-            
+
             // Prologue
             var op = ctx.Parameters;
             var pTypes = new Type[op.Length];
@@ -27,13 +28,13 @@ namespace Ultz.SuperInvoke.InteropServices
                     var @true = il.DefineLabel();
                     var end = il.DefineLabel();
                     il.Emit(OpCodes.Brtrue, @true);
-                    
+
                     EmitFalse(il, unmanagedType);
                     il.Emit(OpCodes.Br, end);
-                    
+
                     il.MarkLabel(@true);
                     EmitTrue(il, unmanagedType);
-                    
+
                     il.MarkLabel(end);
 
                     pTypes[i] = GetType(unmanagedType);
@@ -53,7 +54,7 @@ namespace Ultz.SuperInvoke.InteropServices
             // Call
             ctx.EmitNativeCall(returnType, pTypes, ctx.CloneReturnAttributes(),
                 ctx.CloneParameterAttributes(), il);
-            
+
             // Epilogue
             if (ctx.Method.ReturnType == typeof(bool))
             {
@@ -68,10 +69,10 @@ namespace Ultz.SuperInvoke.InteropServices
 
                 il.Emit(OpCodes.Ldc_I4_0);
                 il.Emit(OpCodes.Br, end);
-                
+
                 il.MarkLabel(@true);
                 il.Emit(OpCodes.Ldc_I4_1);
-                
+
                 il.MarkLabel(end);
             }
 

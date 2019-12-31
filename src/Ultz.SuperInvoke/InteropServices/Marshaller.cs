@@ -10,11 +10,12 @@ namespace Ultz.SuperInvoke.InteropServices
     {
         private static readonly Generator BaseGenerator = new Generator();
 
-        public static IMarshaller[] DefaultStages { get; } = 
+        public static IMarshaller[] DefaultStages { get; } =
         {
             new PinObjectMarshaller(),
             new BoolMarshaller()
         };
+
         public IMarshaller[] Stages { get; set; }
         public override void GenerateMethod(in MethodGenerationContext ctx) => Marshal(ctx);
 
@@ -32,7 +33,9 @@ namespace Ultz.SuperInvoke.InteropServices
             // Get the first marshalling stage
             var iteration = 0;
             var typeBuilder = (TypeBuilder) ctx.DestinationMethod.DeclaringType;
-            var firstStage = GetNextStage(ctx.OriginalMethod, -1, Stages, out var index);
+            var firstStage = GetNextStage(new ParameterMarshalContext(ctx.OriginalMethod.ReturnParameter),
+                ctx.OriginalMethod.GetParameters().Select(x => new ParameterMarshalContext(x)).ToArray(), -1, Stages,
+                out var index);
 
             // If we don't have a first stage, we have no marshalling to do.
             // Just pass it to the regular generator :D
@@ -50,7 +53,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray());
 
             // Generate the marshalling wrappers (the first one will call EmitCall, which will then gen the next, etc.)
-            firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod, entry,
+            firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod, ctx.Slot, entry,
                 CreateMarshalContext(ctx.OriginalMethod.ReturnParameter),
                 ctx.OriginalMethod.GetParameters().Select(CreateMarshalContext).ToArray(), EmitCall
             ));
@@ -65,7 +68,7 @@ namespace Ultz.SuperInvoke.InteropServices
             void EmitCall(MethodBuilder wip, ParameterMarshalContext ret, ParameterMarshalContext[] parameters,
                 ILGenerator il)
             {
-                var nextStage = GetNextStage(wip, index, Stages, out index);
+                var nextStage = GetNextStage(ret, parameters, index, Stages, out index);
 
                 // If no more stages are available, emit the native call and go home.
                 if (nextStage is null)
@@ -78,7 +81,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 }
                 else
                 {
-                    var call = nextStage.Marshal(new MethodMarshalContext(wip, typeBuilder.DefineMethod(
+                    var call = nextStage.Marshal(new MethodMarshalContext(wip, ctx.Slot, typeBuilder.DefineMethod(
                             GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
                             MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
                             wip.CallingConvention, ret.Type, parameters.Select(x => x.Type).ToArray()), ret, parameters,
@@ -96,13 +99,14 @@ namespace Ultz.SuperInvoke.InteropServices
         private static string GetName(IMarshaller marshaller, string ogName, int iteration) =>
             $"{ogName}_{marshaller.GetType().Name}_{iteration}";
 
-        private static IMarshaller GetNextStage(MethodInfo wip, int current, IReadOnlyList<IMarshaller> stages,
+        private static IMarshaller GetNextStage(in ParameterMarshalContext ret, ParameterMarshalContext[] parameters,
+            int current, IReadOnlyList<IMarshaller> stages,
             out int index)
         {
             for (var i = current + 1; i < stages.Count; i++)
             {
                 var stage = stages[i];
-                if (stage.CanMarshal(wip))
+                if (stage.CanMarshal(ret, parameters))
                 {
                     index = i;
                     return stage;

@@ -15,12 +15,14 @@ namespace Ultz.SuperInvoke.InteropServices
         public MethodBuilder Method { get; }
         public ParameterMarshalContext ReturnParameter { get; }
         public ParameterMarshalContext[] Parameters { get; }
+        public int Slot { get; }
 
-        public MethodMarshalContext(MethodInfo og, MethodBuilder dest, ParameterMarshalContext ret,
+        public MethodMarshalContext(MethodInfo og, int slot, MethodBuilder dest, ParameterMarshalContext ret,
             ParameterMarshalContext[] parameters,
             Action<MethodBuilder, ParameterMarshalContext, ParameterMarshalContext[], ILGenerator> emitNativeCall)
         {
             _emitNativeCall = emitNativeCall;
+            Slot = slot;
             PreviousMethod = og;
             Method = dest;
             ReturnParameter = ret;

@@ -10,7 +10,7 @@ namespace Ultz.SuperInvoke.InteropServices
     /// </summary>
     public interface IMarshaller
     {
-        bool CanMarshal(MethodInfo og);
+        bool CanMarshal(in ParameterMarshalContext returnType, ParameterMarshalContext[] parameters);
         MethodBuilder Marshal(in MethodMarshalContext ctx);
     }
 }
