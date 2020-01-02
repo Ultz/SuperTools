@@ -47,16 +47,16 @@ namespace Ultz.SuperInvoke.InteropServices
             }
 
             var returnUnmanagedType = ctx.ReturnParameter.GetUnmanagedType() ?? UnmanagedType.U1;
-            var returnType = ctx.Method.ReturnType == typeof(bool)
+            var returnType = ctx.ReturnParameter.Type == typeof(bool)
                 ? GetType(returnUnmanagedType)
-                : ctx.Method.ReturnType;
+                : ctx.ReturnParameter.Type;
 
             // Call
             ctx.EmitNativeCall(returnType, pTypes, ctx.CloneReturnAttributes(),
                 ctx.CloneParameterAttributes(), il);
 
             // Epilogue
-            if (ctx.Method.ReturnType == typeof(bool))
+            if (ctx.ReturnParameter.Type == typeof(bool))
             {
                 var @true = il.DefineLabel();
                 var end = il.DefineLabel();
@@ -76,6 +76,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 il.MarkLabel(end);
             }
 
+            il.Emit(OpCodes.Ret);
             return ctx.Method;
         }
 

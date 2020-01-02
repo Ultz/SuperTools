@@ -42,7 +42,8 @@ namespace Ultz.SuperInvoke.InteropServices
             CustomAttributeBuilder[][] paramAttr, ILGenerator il, CustomAttributeData[][] originalAttributes = null) =>
             EmitNativeCall(
                 new ParameterMarshalContext(returnType, retAttr, ReturnParameter.OriginalAttributes),
-                CreateParameters(paramTypes, paramAttr, originalAttributes), il);
+                CreateParameters(paramTypes, paramAttr,
+                    originalAttributes ?? Parameters.Select(x => x.OriginalAttributes).ToArray()), il);
 
         private ParameterMarshalContext[] CreateParameters(Type[] types, CustomAttributeBuilder[][] attributes,
             CustomAttributeData[][] originalAttributes)

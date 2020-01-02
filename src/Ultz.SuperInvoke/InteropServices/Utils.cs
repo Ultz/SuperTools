@@ -106,6 +106,12 @@ namespace Ultz.SuperInvoke.InteropServices
             return attribute;
         }
 
+        public static IntPtr DelegateToPtr(Delegate @delegate) =>
+            @delegate is null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(@delegate);
+
+        public static T PtrToDelegate<T>(IntPtr ptr) where T:Delegate =>
+            ptr == IntPtr.Zero ? null : Marshal.GetDelegateForFunctionPointer<T>(ptr);
+
         public static UnmanagedType? GetUnmanagedType(this ParameterMarshalContext info) =>
             info.OriginalAttributes.Select(x => x.CreateAttribute() as MarshalAsAttribute)
                 .FirstOrDefault(x => !(x is null))?.Value;
