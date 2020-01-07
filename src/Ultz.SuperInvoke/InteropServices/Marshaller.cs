@@ -91,9 +91,11 @@ namespace Ultz.SuperInvoke.InteropServices
             }
 
             ParameterMarshalContext CreateMarshalContext(ParameterInfo inf) => new ParameterMarshalContext(
+                inf.Attributes,
                 inf.ParameterType,
                 inf.CloneAttributes(),
-                inf.GetCustomAttributesData().ToArray());
+                inf.GetCustomAttributesData().ToArray(),
+                inf.Attributes);
         }
 
         private static string GetName(IMarshaller marshaller, string ogName, int iteration) =>

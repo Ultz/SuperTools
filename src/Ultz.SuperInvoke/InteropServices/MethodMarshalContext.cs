@@ -39,19 +39,28 @@ namespace Ultz.SuperInvoke.InteropServices
             _emitNativeCall(Method, returnCtx, parameterCtx, il);
 
         public void EmitNativeCall(Type returnType, Type[] paramTypes, CustomAttributeBuilder[] retAttr,
-            CustomAttributeBuilder[][] paramAttr, ILGenerator il, CustomAttributeData[][] originalAttributes = null) =>
+            CustomAttributeBuilder[][] paramAttr, ILGenerator il, ParameterAttributes? retAttrs = null,
+            ParameterAttributes[] pAttrs = null, Type[] retModreq = null, Type[] retModopt = null,
+            Type[][] requiredModifiers = null,
+            Type[][] optionalModifiers = null) =>
             EmitNativeCall(
-                new ParameterMarshalContext(returnType, retAttr, ReturnParameter.OriginalAttributes),
+                new ParameterMarshalContext(returnType, retAttr, ReturnParameter.OriginalAttributes, retModreq,
+                    retModopt, retAttrs ?? ReturnParameter.ParameterAttributes),
                 CreateParameters(paramTypes, paramAttr,
-                    originalAttributes ?? Parameters.Select(x => x.OriginalAttributes).ToArray()), il);
+                    requiredModifiers ?? Parameters.Select(x => x.RequiredModifiers).ToArray(),
+                    optionalModifiers ?? Parameters.Select(x => x.OptionalModifiers).ToArray(),
+                    Parameters.Select(x => x.OriginalAttributes).ToArray(),
+                    pAttrs ?? Parameters.Select(x => x.ParameterAttributes).ToArray()), il);
 
         private ParameterMarshalContext[] CreateParameters(Type[] types, CustomAttributeBuilder[][] attributes,
-            CustomAttributeData[][] originalAttributes)
+            Type[][] requiredModifiers, Type[][] optionalModifiers,
+            CustomAttributeData[][] originalAttributes, ParameterAttributes[] ogAttrs)
         {
             var ret = new ParameterMarshalContext[types.Length];
             for (var i = 0; i < types.Length; i++)
             {
-                ret[i] = new ParameterMarshalContext(types[i], attributes[i], originalAttributes[i]);
+                ret[i] = new ParameterMarshalContext(types[i], attributes[i], originalAttributes[i],
+                    requiredModifiers[i], optionalModifiers[i], ogAttrs[i]);
             }
 
             return ret;

@@ -7,12 +7,12 @@ namespace Ultz.SuperInvoke.InteropServices
 {
     public class DelegateMarshaller : IMarshaller
     {
-        private static MethodInfo ToPtr { get; } = typeof(Utils).GetMethod(nameof(Utils.DelegateToPtr),
+        private static MethodInfo ToPtr { get; } = typeof(MarshalUtils).GetMethod(nameof(MarshalUtils.DelegateToPtr),
             BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic, null, new []{typeof(Delegate)}, null);
 
-        private static MethodInfo FromPtr { get; } = typeof(Utils)
+        private static MethodInfo FromPtr { get; } = typeof(MarshalUtils)
             .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic).FirstOrDefault(x =>
-                x.IsGenericMethodDefinition && x.Name == nameof(Utils.PtrToDelegate) && x.GetParameters().Length == 1 &&
+                x.IsGenericMethodDefinition && x.Name == nameof(MarshalUtils.PtrToDelegate) && x.GetParameters().Length == 1 &&
                 x.GetParameters()[0].ParameterType == typeof(IntPtr));
 
         private static MethodInfo FromPtrGeneric(Type type) => FromPtr.MakeGenericMethod(type);

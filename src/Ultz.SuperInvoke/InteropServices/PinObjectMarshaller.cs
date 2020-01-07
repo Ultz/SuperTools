@@ -7,11 +7,11 @@ namespace Ultz.SuperInvoke.InteropServices
     public class PinObjectMarshaller : IMarshaller
     {
         private static MethodInfo Persist { get; } =
-            typeof(Utils).GetMethod(nameof(Utils.Pin), BindingFlags.Public | BindingFlags.Static, null,
+            typeof(MarshalUtils).GetMethod(nameof(MarshalUtils.Pin), BindingFlags.Public | BindingFlags.Static, null,
                 new[] {typeof(object), typeof(int)}, null);
 
         private static MethodInfo UntilNextCall { get; } =
-            typeof(Utils).GetMethod(nameof(Utils.PinUntilNextCall), BindingFlags.Public | BindingFlags.Static, null,
+            typeof(MarshalUtils).GetMethod(nameof(MarshalUtils.PinUntilNextCall), BindingFlags.Public | BindingFlags.Static, null,
                 new[] {typeof(object), typeof(int)}, null);
         public bool CanMarshal(in ParameterMarshalContext ret, ParameterMarshalContext[] parameters) =>
             parameters.Any(x => !(x.GetCustomAttribute<PinObjectAttribute>() is null));

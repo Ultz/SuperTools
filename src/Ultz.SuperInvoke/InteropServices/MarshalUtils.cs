@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Ultz.SuperInvoke.InteropServices
 {
-    internal static class Utils
+    public static class MarshalUtils
     {
         private class UnmanagedConstraint<T> where T : unmanaged
         {
@@ -26,6 +26,8 @@ namespace Ultz.SuperInvoke.InteropServices
             Pins[slot].Clear();
             Pins[slot].Add(GCHandle.Alloc(obj));
         }
+
+        public static IntPtr AllocBStr(IntPtr len) => Marshal.StringToBSTR(new string('\0', len.ToInt32()));
 
         public static void Pin(object obj, int slot = -1)
         {
