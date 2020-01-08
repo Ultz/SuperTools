@@ -19,6 +19,8 @@ namespace Ultz.SuperInvoke.InteropServices
         public MethodBuilder Marshal(in MethodMarshalContext ctx)
         {
             var il = ctx.Method.GetILGenerator();
+            
+            il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 il.Emit(OpCodes.Ldarg, i + 1);

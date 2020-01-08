@@ -24,6 +24,8 @@ namespace Ultz.SuperInvoke.InteropServices
         {
             var il = ctx.Method.GetILGenerator();
             var pTypes = new Type[ctx.Parameters.Length];
+            
+            il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];

@@ -54,8 +54,8 @@ namespace Ultz.SuperInvoke.InteropServices
 
             // Generate the marshalling wrappers (the first one will call EmitCall, which will then gen the next, etc.)
             firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod, ctx.Slot, entry,
-                CreateMarshalContext(ctx.OriginalMethod.ReturnParameter),
-                ctx.OriginalMethod.GetParameters().Select(CreateMarshalContext).ToArray(), EmitCall
+                new ParameterMarshalContext(ctx.OriginalMethod.ReturnParameter),
+                ctx.OriginalMethod.GetParameters().Select(x => new ParameterMarshalContext(x)).ToArray(), EmitCall
             ));
 
             // Emit the actual method using the default generator
@@ -89,13 +89,6 @@ namespace Ultz.SuperInvoke.InteropServices
                     il.Emit(OpCodes.Call, call);
                 }
             }
-
-            ParameterMarshalContext CreateMarshalContext(ParameterInfo inf) => new ParameterMarshalContext(
-                inf.Attributes,
-                inf.ParameterType,
-                inf.CloneAttributes(),
-                inf.GetCustomAttributesData().ToArray(),
-                inf.Attributes);
         }
 
         private static string GetName(IMarshaller marshaller, string ogName, int iteration) =>

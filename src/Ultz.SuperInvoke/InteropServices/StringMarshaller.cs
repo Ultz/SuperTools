@@ -92,6 +92,8 @@ namespace Ultz.SuperInvoke.InteropServices
             var locals = new LocalBuilder[ctx.Parameters.Length];
             var pAttr = ctx.CloneParameterAttributes();
             var rAttr = ctx.CloneReturnAttributes();
+            
+            il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];

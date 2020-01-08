@@ -19,6 +19,8 @@ namespace Ultz.SuperInvoke.InteropServices
             // Prologue
             var op = ctx.Parameters;
             var pTypes = new Type[op.Length];
+            
+            il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < op.Length; i++)
             {
                 var p = op[i];
