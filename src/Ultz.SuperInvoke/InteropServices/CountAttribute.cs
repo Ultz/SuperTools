@@ -2,6 +2,7 @@
 
 namespace Ultz.SuperInvoke.InteropServices
 {
+    [AttributeUsage(AttributeTargets.Parameter)]
     public class CountAttribute : Attribute
     {
         public object ArbitraryCount { get; }

@@ -111,28 +111,27 @@ namespace Ultz.SuperInvoke.InteropServices
         public static IntPtr DelegateToPtr(Delegate @delegate) =>
             @delegate is null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(@delegate);
 
-        public static T PtrToDelegate<T>(IntPtr ptr) where T:Delegate =>
+        public static T PtrToDelegate<T>(IntPtr ptr) where T : Delegate =>
             ptr == IntPtr.Zero ? null : Marshal.GetDelegateForFunctionPointer<T>(ptr);
 
         public static UnmanagedType? GetUnmanagedType(this ParameterMarshalContext info) =>
             info.OriginalAttributes.Select(x => x.CreateAttribute() as MarshalAsAttribute)
                 .FirstOrDefault(x => !(x is null))?.Value;
 
+        public static CustomAttributeBuilder CloneAttribute(CustomAttributeData w) => new CustomAttributeBuilder(
+            w.Constructor,
+            w.ConstructorArguments.Select(x => x.Value).ToArray(),
+            w.NamedArguments?.Where(x => !x.IsField).Select(x => (PropertyInfo) x.MemberInfo).ToArray(),
+            w.NamedArguments?.Where(x => !x.IsField).Select(x => x.TypedValue.Value).ToArray(),
+            w.NamedArguments?.Where(x => x.IsField).Select(x => (FieldInfo) x.MemberInfo).ToArray(),
+            w.NamedArguments?.Where(x => x.IsField).Select(x => x.TypedValue.Value).ToArray());
+
         public static CustomAttributeBuilder[] CloneAttributes(this ParameterMarshalContext info) => info
             .OriginalAttributes
-            .Select(w => new CustomAttributeBuilder(w.Constructor,
-                w.ConstructorArguments.Select(x => x.Value).ToArray(),
-                w.NamedArguments?.Where(x => !x.IsField).Select(x => (PropertyInfo) x.MemberInfo).ToArray(),
-                w.NamedArguments?.Where(x => !x.IsField).Select(x => x.TypedValue.Value).ToArray(),
-                w.NamedArguments?.Where(x => x.IsField).Select(x => (FieldInfo) x.MemberInfo).ToArray(),
-                w.NamedArguments?.Where(x => x.IsField).Select(x => x.TypedValue.Value).ToArray())).ToArray();
+            .Select(CloneAttribute).ToArray();
 
-        public static CustomAttributeBuilder[] CloneAttributes(this ParameterInfo info) => info.GetCustomAttributesData()
-            .Select(w => new CustomAttributeBuilder(w.Constructor,
-                w.ConstructorArguments.Select(x => x.Value).ToArray(),
-                w.NamedArguments?.Where(x => !x.IsField).Select(x => (PropertyInfo) x.MemberInfo).ToArray(),
-                w.NamedArguments?.Where(x => !x.IsField).Select(x => x.TypedValue.Value).ToArray(),
-                w.NamedArguments?.Where(x => x.IsField).Select(x => (FieldInfo) x.MemberInfo).ToArray(),
-                w.NamedArguments?.Where(x => x.IsField).Select(x => x.TypedValue.Value).ToArray())).ToArray();
+        public static CustomAttributeBuilder[] CloneAttributes(this ParameterInfo info) => info
+            .GetCustomAttributesData()
+            .Select(CloneAttribute).ToArray();
     }
 }
