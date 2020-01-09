@@ -29,11 +29,17 @@ namespace Ultz.SuperInvoke.InteropServices
                     pAttrs.Add(param.OriginalAttributes.Select(MarshalUtils.CloneAttribute).ToArray());
                     continue;
                 }
+
+                if (!param.Type.IsUnmanaged())
+                {
+                    throw new InvalidOperationException("Can only merge unmanaged parameters.");
+                }
                 
                 il.Emit(OpCodes.Ldc_I4, attr.Count * NetMarshal.SizeOf(param.Type));
                 il.Emit(OpCodes.Conv_U);
                 il.Emit(OpCodes.Localloc);
-                il.Emit(OpCodes.Stloc, il); // TODO
+                var local = il.DeclareLocal(param.Type);
+                il.Emit(OpCodes.Stloc, );
             }
         }
 
