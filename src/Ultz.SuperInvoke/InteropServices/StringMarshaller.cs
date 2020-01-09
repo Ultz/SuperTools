@@ -122,7 +122,7 @@ namespace Ultz.SuperInvoke.InteropServices
                                 }
                                 case CountType.ParameterReference:
                                 {
-                                    il.Emit(OpCodes.Ldarg, i + count.ParameterOffset.Value);
+                                    il.Emit(OpCodes.Ldarg, i + 1 + count.ParameterOffset.Value);
                                     break;
                                 }
                                 default:
@@ -137,7 +137,7 @@ namespace Ultz.SuperInvoke.InteropServices
                         }
                         else
                         {
-                            il.Emit(OpCodes.Ldarg, i);
+                            il.Emit(OpCodes.Ldarg, i + 1);
                             il.Emit(OpCodes.Call, ToPtr(unmanagedType));
                             il.Emit(OpCodes.Dup);
                             il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(typeof(IntPtr)));
@@ -145,7 +145,7 @@ namespace Ultz.SuperInvoke.InteropServices
                     }
                     else
                     {
-                        il.Emit(OpCodes.Ldarg, i);
+                        il.Emit(OpCodes.Ldarg, i + 1);
                         il.Emit(OpCodes.Call, ToPtr(unmanagedType));
                         il.Emit(OpCodes.Dup);
                         il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(typeof(IntPtr)));
@@ -156,7 +156,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldarg, i);
+                    il.Emit(OpCodes.Ldarg, i + 1);
                     pTypes[i] = param.Type;
                 }
             }
@@ -186,7 +186,7 @@ namespace Ultz.SuperInvoke.InteropServices
                         }
                         else
                         {
-                            il.Emit(OpCodes.Ldarg, i);
+                            il.Emit(OpCodes.Ldarg, i + 1);
                             il.Emit(OpCodes.Ldloc, locals[i]);
                             il.Emit(OpCodes.Call, FromPtr(unmanagedType));
                             il.Emit(OpCodes.Stind_Ref);
