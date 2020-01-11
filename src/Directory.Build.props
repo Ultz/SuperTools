@@ -4,7 +4,7 @@
         <LangVersion>8.0</LangVersion>
         <PackageReleaseNotes>
         </PackageReleaseNotes>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!--<GenerateDocumentationFile>true</GenerateDocumentationFile>-->
         <PackageOutputPath>$(MSBuildThisFileDirectory)/../output_packages</PackageOutputPath>
         <RepositoryUrl>https://github.com/Ultz/SuperTools</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>

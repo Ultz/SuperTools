@@ -5,6 +5,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperPack", "src\Ultz.SuperPack\Ultz.SuperPack.csproj", "{98D39F7A-F7E5-4C5C-A457-132612436C90}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A6F70F15-F6FC-416B-AC6B-15E422E761A8}"
+ProjectSection(SolutionItems) = preProject
+	src\Directory.Build.props = src\Directory.Build.props
+EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{7372CF01-1E2A-4F69-8A41-CCA41F6F7E4C}"
 EndProject
@@ -15,6 +18,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperInvoke.Loader", "src\Ultz.SuperInvoke.Loader\Ultz.SuperInvoke.Loader.csproj", "{B58DC8AD-3022-4A37-99DD-C9C3211A137C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperInvoke.AOT", "src\Ultz.SuperInvoke.AOT\Ultz.SuperInvoke.AOT.csproj", "{DF6A14A0-BA14-442A-A7E2-ECB80AE5869B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultz.SuperBind.Core", "src\Ultz.SuperBind.Core\Ultz.SuperBind.Core.csproj", "{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,6 +51,10 @@ Global
 		{DF6A14A0-BA14-442A-A7E2-ECB80AE5869B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF6A14A0-BA14-442A-A7E2-ECB80AE5869B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF6A14A0-BA14-442A-A7E2-ECB80AE5869B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{828161DC-81AD-4F05-8349-776D34C537A5} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
@@ -54,5 +63,6 @@ Global
 		{B7E4F770-47B6-4FBA-B90E-637B377B3C99} = {7372CF01-1E2A-4F69-8A41-CCA41F6F7E4C}
 		{B58DC8AD-3022-4A37-99DD-C9C3211A137C} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
 		{DF6A14A0-BA14-442A-A7E2-ECB80AE5869B} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
+		{4C4B84B3-CF79-40DC-8AD9-9C389C0D46D4} = {A6F70F15-F6FC-416B-AC6B-15E422E761A8}
 	EndGlobalSection
 EndGlobal
