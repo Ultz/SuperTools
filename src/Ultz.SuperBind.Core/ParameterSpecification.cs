@@ -2,12 +2,13 @@
 
 namespace Ultz.SuperBind.Core
 {
-    public class FieldSpecification
+    public class ParameterSpecification
     {
-        public string Name { get; set; }
+        public bool IsIn { get; set; }
+        public bool IsOut { get; set; }
         public TypeReference Type { get; set; }
-        public FieldAttributes Attributes { get; set; }
         public CustomAttributeSpecification[] CustomAttributes { get; set; }
+        public string Name { get; set; }
         public Dictionary<string, string> TempData { get; set; } = new Dictionary<string,string>();
     }
 }

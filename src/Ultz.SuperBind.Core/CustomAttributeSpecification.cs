@@ -8,6 +8,6 @@ namespace Ultz.SuperBind.Core
         public string[] Arguments { get; set; }
         public Dictionary<string, string> FieldAssignments { get; set; }
         public Dictionary<string, string> PropertyAssignments { get; set; }
-        public Dictionary<string, string> TempData { get; set; }
+        public Dictionary<string, string> TempData { get; set; } = new Dictionary<string,string>();
     }
 }
