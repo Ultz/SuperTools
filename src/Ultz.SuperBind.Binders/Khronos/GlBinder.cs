@@ -33,6 +33,11 @@ namespace Ultz.SuperBind.Binders.Khronos
                 Value = FormatToken(@t.@t.@enum.Attribute("value")?.Value)
             }).ToArray();
 
+        public MethodSpecification[] ReadMethods()
+        {
+            
+        }
+
         private static int? FormatToken(string token)
         {
             if (token == null)

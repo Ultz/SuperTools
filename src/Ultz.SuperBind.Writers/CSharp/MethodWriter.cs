@@ -36,17 +36,26 @@ namespace Ultz.SuperBind.Writers.CSharp
                 writer.WriteLine($"        {GetTypeRef(method.ReturnParameter.Type, true)} {method.Name}");
                 writer.WriteLine("        (");
                 WriteParameters(writer, method.Parameters);
-                writer.WriteLine("        )");
+                writer.Write("        )");
 
                 var rawBody = (string[]) method.Body;
 
-                writer.WriteLine("        {");
-                foreach (var line in rawBody)
+                if (!(rawBody is null))
                 {
-                    writer.WriteLine($"            {line}");
+                    writer.WriteLine();
+                    writer.WriteLine("        {");
+                    foreach (var line in rawBody)
+                    {
+                        writer.WriteLine($"            {line}");
+                    }
+
+                    writer.WriteLine("        }");
+                }
+                else
+                {
+                    writer.WriteLine(";");
                 }
 
-                writer.WriteLine("        }");
                 writer.WriteLine();
             }
         }
