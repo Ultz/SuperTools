@@ -10,18 +10,15 @@ using static Ultz.SuperBind.Writers.CSharp.MethodWriter;
 
 namespace Ultz.SuperBind.Writers.CSharp
 {
-    public static class ClassWriter
+    public static class InterfaceWriter
     {
-        public static string GetAttributes(ClassAttributes attrs) =>
-            ((attrs & ClassAttributes.Public) != 0 ? "public " :
-                (attrs & ClassAttributes.Private) != 0 ? "private " :
-                (attrs & ClassAttributes.Internal) != 0 ? "internal " : null) +
-            ((attrs & ClassAttributes.Static) != 0 ? "static " : null) +
-            ((attrs & ClassAttributes.Abstract) != 0 ? "abstract " : null) +
-            ((attrs & ClassAttributes.Sealed) != 0 ? "sealed " : null) +
-            ((attrs & ClassAttributes.Partial) != 0 ? "partial " : null);
+        public static string GetAttributes(InterfaceAttributes attrs) =>
+            ((attrs & InterfaceAttributes.Public) != 0 ? "public " :
+                (attrs & InterfaceAttributes.Private) != 0 ? "private " :
+                (attrs & InterfaceAttributes.Internal) != 0 ? "internal " : null) +
+            ((attrs & InterfaceAttributes.Partial) != 0 ? "partial " : null);
 
-        public static void WriteClasses(string dir, IEnumerable<ClassSpecification> spec)
+        public static void WriteInterfaces(string dir, IEnumerable<InterfaceSpecification> spec)
         {
             var fileNames = new List<string>();
             foreach (var classSpecification in spec)
@@ -32,21 +29,19 @@ namespace Ultz.SuperBind.Writers.CSharp
                     fileName = classSpecification.Name + "." + i;
                 }
                 
-                WriteClass(new StreamWriter(Path.Combine(dir, fileName + ".cs")), classSpecification);
+                WriteInterface(new StreamWriter(Path.Combine(dir, fileName + ".cs")), classSpecification);
                 fileNames.Add(fileName);
             }
         }
 
-        public static void WriteClass(StreamWriter writer, ClassSpecification spec)
+        public static void WriteInterface(StreamWriter writer, InterfaceSpecification spec)
         {
             MapUsings(writer, spec);
             writer.WriteLine();
             writer.WriteLine($"namespace {spec.Namespace}");
             writer.WriteLine("{");
-            writer.WriteLine($"    {GetAttributes(spec.Attributes)}class");
+            writer.WriteLine($"    {GetAttributes(spec.Attributes)}interface");
             writer.WriteLine("    {");
-            WriteFields(writer, spec.Fields);
-            WriteConstructors(writer, spec);
             WriteProperties(writer, spec.Properties);
             WriteMethods(writer, spec.Methods);
             writer.WriteLine("    }");
@@ -54,13 +49,9 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine();
         }
 
-        private static void MapUsings(StreamWriter writer, ClassSpecification spec)
+        private static void MapUsings(StreamWriter writer, InterfaceSpecification spec)
         {
             var refMap = new Dictionary<string, string>();
-            foreach (var field in spec.Fields)
-            {
-                field.Type = WriteUsing(writer, field.Type, ref refMap);
-            }
 
             for (var i = 0; i < spec.Interfaces.Length; i++)
             {
@@ -82,19 +73,6 @@ namespace Ultz.SuperBind.Writers.CSharp
                 }
             }
 
-            foreach (var ctor in spec.Constructors)
-            {
-                foreach (var p in ctor.Parameters)
-                {
-                    p.Type = WriteUsing(writer, p.Type, ref refMap);
-                }
-
-                foreach (var cas in ctor.CustomAttributes)
-                {
-                    cas.ConstructorType = WriteUsing(writer, cas.ConstructorType, ref refMap);
-                }
-            }
-
             foreach (var property in spec.Properties)
             {
                 property.Type = WriteUsing(writer, property.Type, ref refMap);
@@ -103,8 +81,6 @@ namespace Ultz.SuperBind.Writers.CSharp
                     cas.ConstructorType = WriteUsing(writer, cas.ConstructorType, ref refMap);
                 }
             }
-
-            spec.BaseClass = WriteUsing(writer, spec.BaseClass, ref refMap);
 
             foreach (var cas in spec.CustomAttributes)
             {

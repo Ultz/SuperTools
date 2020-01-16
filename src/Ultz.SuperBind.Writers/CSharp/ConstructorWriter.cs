@@ -48,5 +48,36 @@ namespace Ultz.SuperBind.Writers.CSharp
                 writer.WriteLine();
             }
         }
+
+        public static void WriteConstructors(StreamWriter writer, StructSpecification cs)
+        {
+            foreach (var ctor in cs.Constructors)
+            {
+                foreach (var customAttribute in ctor.CustomAttributes)
+                {
+                    writer.WriteLine("        " + GetAttribute(customAttribute));
+                }
+
+                writer.WriteLine($"        {GetAttributes(ctor.Attributes)}{cs.Name}");
+                writer.WriteLine("        (");
+                WriteParameters(writer, ctor.Parameters);
+                writer.WriteLine("        )");
+
+                var rawBody = (string[]) ctor.Body;
+                if (!(rawBody is null))
+                {
+                    writer.WriteLine($"            {rawBody[0]}");
+                }
+
+                writer.WriteLine("        {");
+                for (var i = 1; i < rawBody.Length - 1; i++)
+                {
+                    writer.WriteLine($"            {rawBody[i]}");
+                }
+
+                writer.WriteLine("        }");
+                writer.WriteLine();
+            }
+        }
     }
 }

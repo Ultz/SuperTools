@@ -10,40 +10,37 @@ using static Ultz.SuperBind.Writers.CSharp.MethodWriter;
 
 namespace Ultz.SuperBind.Writers.CSharp
 {
-    public static class ClassWriter
+    public static class StructWriter
     {
-        public static string GetAttributes(ClassAttributes attrs) =>
-            ((attrs & ClassAttributes.Public) != 0 ? "public " :
-                (attrs & ClassAttributes.Private) != 0 ? "private " :
-                (attrs & ClassAttributes.Internal) != 0 ? "internal " : null) +
-            ((attrs & ClassAttributes.Static) != 0 ? "static " : null) +
-            ((attrs & ClassAttributes.Abstract) != 0 ? "abstract " : null) +
-            ((attrs & ClassAttributes.Sealed) != 0 ? "sealed " : null) +
-            ((attrs & ClassAttributes.Partial) != 0 ? "partial " : null);
+        public static string GetAttributes(StructAttributes attrs) =>
+            ((attrs & StructAttributes.Public) != 0 ? "public " :
+                (attrs & StructAttributes.Private) != 0 ? "private " :
+                (attrs & StructAttributes.Internal) != 0 ? "internal " : null) +
+            ((attrs & StructAttributes.Partial) != 0 ? "partial " : null);
 
-        public static void WriteClasses(string dir, IEnumerable<ClassSpecification> spec)
+        public static void WriteStructs(string dir, IEnumerable<StructSpecification> spec)
         {
             var fileNames = new List<string>();
-            foreach (var classSpecification in spec)
+            foreach (var structSpecification in spec)
             {
-                var fileName = classSpecification.Name;
+                var fileName = structSpecification.Name;
                 for (var i = 0; fileNames.Contains(fileName); i++)
                 {
-                    fileName = classSpecification.Name + "." + i;
+                    fileName = structSpecification.Name + "." + i;
                 }
                 
-                WriteClass(new StreamWriter(Path.Combine(dir, fileName + ".cs")), classSpecification);
+                WriteStruct(new StreamWriter(Path.Combine(dir, fileName + ".cs")), structSpecification);
                 fileNames.Add(fileName);
             }
         }
 
-        public static void WriteClass(StreamWriter writer, ClassSpecification spec)
+        public static void WriteStruct(StreamWriter writer, StructSpecification spec)
         {
             MapUsings(writer, spec);
             writer.WriteLine();
             writer.WriteLine($"namespace {spec.Namespace}");
             writer.WriteLine("{");
-            writer.WriteLine($"    {GetAttributes(spec.Attributes)}class");
+            writer.WriteLine($"    {GetAttributes(spec.Attributes)}struct");
             writer.WriteLine("    {");
             WriteFields(writer, spec.Fields);
             WriteConstructors(writer, spec);
@@ -54,7 +51,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine();
         }
 
-        private static void MapUsings(StreamWriter writer, ClassSpecification spec)
+        private static void MapUsings(StreamWriter writer, StructSpecification spec)
         {
             var refMap = new Dictionary<string, string>();
             foreach (var field in spec.Fields)
@@ -103,8 +100,6 @@ namespace Ultz.SuperBind.Writers.CSharp
                     cas.ConstructorType = WriteUsing(writer, cas.ConstructorType, ref refMap);
                 }
             }
-
-            spec.BaseClass = WriteUsing(writer, spec.BaseClass, ref refMap);
 
             foreach (var cas in spec.CustomAttributes)
             {

@@ -10,6 +10,7 @@ namespace Ultz.SuperBind.Core
         public PropertySpecification[] Properties { get; set; }
         public MethodSpecification[] Methods { get; set; }
         public FieldSpecification[] Fields { get; set; }
+        public ConstructorSpecification[] Constructors { get; set; }
         public CustomAttributeSpecification[] CustomAttributes { get; set; }
         public StructAttributes Attributes { get; set; }
         public string XmlDoc { get; set; }

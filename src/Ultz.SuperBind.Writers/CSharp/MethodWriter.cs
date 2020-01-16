@@ -18,9 +18,9 @@ namespace Ultz.SuperBind.Writers.CSharp
             ((attrs & MethodAttributes.Sealed) != 0 ? "sealed " : null) +
             ((attrs & MethodAttributes.Override) != 0 ? "override " : null);
 
-        public static void WriteMethods(StreamWriter writer, ClassSpecification cs)
+        public static void WriteMethods(StreamWriter writer, MethodSpecification[] methods)
         {
-            foreach (var method in cs.Methods)
+            foreach (var method in methods)
             {
                 foreach (var customAttribute in method.CustomAttributes)
                 {
@@ -33,7 +33,7 @@ namespace Ultz.SuperBind.Writers.CSharp
                 }
 
                 writer.Write($"{GetAttributes(method.Attributes)}");
-                writer.WriteLine($"        {GetTypeRef(method.ReturnParameter.Type, true)} {cs.Name}");
+                writer.WriteLine($"        {GetTypeRef(method.ReturnParameter.Type, true)} {method.Name}");
                 writer.WriteLine("        (");
                 WriteParameters(writer, method.Parameters);
                 writer.WriteLine("        )");

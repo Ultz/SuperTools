@@ -5,6 +5,7 @@ namespace Ultz.SuperBind.Core
     public class DelegateSpecification
     {
         public string? Name { get; set; }
+        public string? Namespace { get; set; }
         public ParameterSpecification ReturnParameter { get; set; }
         public ParameterSpecification[] Parameters { get; set; }
         public string? XmlDoc { get; set; }

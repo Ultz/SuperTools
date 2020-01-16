@@ -1,5 +1,9 @@
 ﻿using System.IO;
 using Ultz.SuperBind.Core;
+using static Ultz.SuperBind.Writers.CSharp.ClassWriter;
+using static Ultz.SuperBind.Writers.CSharp.StructWriter;
+using static Ultz.SuperBind.Writers.CSharp.InterfaceWriter;
+using static Ultz.SuperBind.Writers.CSharp.DelegateWriter;
 
 namespace Ultz.SuperBind.Writers.CSharp
 {
@@ -69,6 +73,11 @@ namespace Ultz.SuperBind.Writers.CSharp
             Directory.CreateDirectory(interfaceDir = Path.Combine(dir, "Interfaces"));
             Directory.CreateDirectory(structDir = Path.Combine(dir, "Structs"));
             Directory.CreateDirectory(delegateDir = Path.Combine(dir, "Delegates"));
+            
+            WriteClasses(classDir, proj.Classes);
+            WriteStructs(structDir, proj.Structs);
+            WriteInterfaces(interfaceDir, proj.Interfaces);
+            WriteDelegates(delegateDir, proj.Delegates);
         }
     }
 }

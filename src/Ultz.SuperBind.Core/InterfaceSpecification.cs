@@ -10,6 +10,7 @@ namespace Ultz.SuperBind.Core
         public TypeReference[] Interfaces { get; set; }
         public InterfaceAttributes Attributes { get; set; }
         public MethodSpecification[] Methods { get; set; }
+        public PropertySpecification[] Properties { get; set; }
         public Dictionary<string, string> TempData { get; set; } = new Dictionary<string,string>();
     }
 }
