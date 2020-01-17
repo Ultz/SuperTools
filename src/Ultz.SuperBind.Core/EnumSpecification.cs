@@ -7,9 +7,9 @@ namespace Ultz.SuperBind.Core
         public string Name { get; set; }
         public string Namespace { get; set; }
         public TypeReference BaseType { get; set; }
-        public FieldSpecification[] Fields { get; set; }
+        public EnumerantSpecification[] Enumerants { get; set; }
         public CustomAttributeSpecification[] CustomAttributes { get; set; }
-        public StructAttributes Attributes { get; set; }
+        public EnumAttributes Attributes { get; set; }
         public string XmlDoc { get; set; }
         public Dictionary<string, string> TempData { get; set; } = new Dictionary<string, string>();
     }
