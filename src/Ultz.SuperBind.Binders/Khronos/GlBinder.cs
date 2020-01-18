@@ -25,27 +25,92 @@ namespace Ultz.SuperBind.Binders.Khronos
             for (var i = 0; i < projects.Length; i++)
             {
                 var rawProject = rawProjects[i];
-                var enums = new List<EnumSpecification>();
+                var enums = new List<EnumSpecification>
+                {
+                    new EnumSpecification
+                    {
+                        Attributes = EnumAttributes.Public,
+                        BaseType = CommonTypes.Int,
+                        Enumerants = HandleDuplicates(rawProject.EnumRequirements
+                            .Select(x => allEnums.FirstOrDefault(y => y.Name == x))
+                            .Where(x => !(x is null))).ToArray(),
+                        Name = $"{t.Prefix.ToUpper()}Enum",
+                        Namespace = t.Namespace
+                    }
+                };
+
+                var currentGroup = string.Empty;
+                var currentEnums = new List<EnumerantSpecification>();
+                foreach (var enumerant in enums[0].Enumerants.Where(x => !string.IsNullOrWhiteSpace(x.TempData["GL_GROUP"]))
+                    .OrderBy(x => x.TempData["GL_GROUP"]))
+                {
+                    if (currentGroup != enumerant.TempData["GL_GROUP"])
+                    {
+                        if (string.IsNullOrWhiteSpace(currentGroup))
+                        {
+                            currentGroup = enumerant.TempData["GL_GROUP"];
+                            currentEnums.Add(enumerant);
+                        }
+                        else
+                        {
+                            enums.Add(new EnumSpecification
+                            {
+                                Attributes = EnumAttributes.Public,
+                                BaseType = CommonTypes.Int,
+                                Enumerants = currentEnums.ToArray(),
+                                Name = currentGroup,
+                                Namespace = t.Namespace
+                            });
+                            currentEnums.Clear();
+                            currentGroup = enumerant.TempData["GL_GROUP"];
+                            currentEnums.Add(enumerant);
+                        }
+                    }
+                    else
+                    {
+                        currentEnums.Add(enumerant);
+                    }
+                }
+
                 enums.Add(new EnumSpecification
                 {
                     Attributes = EnumAttributes.Public,
                     BaseType = CommonTypes.Int,
-                    Enumerants = rawProject.EnumRequirements.Select(x => allEnums.FirstOrDefault(y => y.Name == x))
-                        .Where(x => !(x is null)).ToArray(),
-                    Name = $"{t.Prefix.ToUpper()}Enum",
+                    Enumerants = currentEnums.ToArray(),
+                    Name = currentGroup,
                     Namespace = t.Namespace
                 });
+                currentEnums.Clear();
+            }
+        }
 
-                var current = string.Empty;
-                foreach (var enumerant in enums[0].Enumerants.Where(x => !(x.TempData["GL_GROUP"] is null))
-                    .OrderBy(x => x.TempData["GL_GROUP"]))
+        private IEnumerable<EnumerantSpecification> HandleDuplicates(IEnumerable<EnumerantSpecification> enums)
+        {
+            var ret = new Dictionary<string, EnumerantSpecification>();
+            foreach (var @enum in enums)
+            {
+                if (!(ret.ContainsKey(@enum.Name) || ret.ContainsKey(@enum.TempData["GL_NN_LITE"])))
                 {
-                    if (current != enumerant.TempData["GL_GROUP"])
+                    ret.Add(@enum.Name, @enum);
+                }
+                else
+                {
+                    if ((int?)ret[@enum.Name].Value == (int?)@enum.Value)
                     {
-                        // TODO going upstairs now
+                        continue;
                     }
+
+                    @enum.Name = @enum.TempData["GL_NN_LITE"];
+                    if (ret[@enum.Name].Name == @enum.Name)
+                    {
+                        ret[@enum.Name].Name = ret[@enum.Name].TempData["GL_NN_LITE"];
+                    }
+
+                    ret.Add(@enum.Name, @enum);
                 }
             }
+
+            return ret.Values;
         }
 
         public List<ApiSpecification> ReadFeaturesAndExtensions()

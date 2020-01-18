@@ -9,6 +9,8 @@ namespace Ultz.SuperBind.Binders.Khronos
         public string[] AssemblyReferences { get; }
         public string[] ProjectReferences { get; }
         public PackageReference[] PackageReferences { get; }
+        public TypeReference MainBaseClass { get; }
+        public TypeReference ExtensionBaseClass { get; }
         public string Namespace { get; }
     }
 }
