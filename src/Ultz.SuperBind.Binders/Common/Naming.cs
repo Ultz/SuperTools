@@ -78,7 +78,7 @@ namespace Ultz.SuperBind.Binders.Common
 
             if (char.IsDigit(builder[0]))
             {
-                builder.Insert(0, "C");
+                builder.Insert(0, prefix.ToUpper());
             }
 
             var newName = builder.ToString().Pascalize();

@@ -67,17 +67,19 @@ namespace Ultz.SuperBind.Writers.CSharp
                 csproj.WriteLine($"  <Import Project=\"{prop.Path}\" />");
             }
             csproj.WriteLine("</Project>");
+            csproj.Flush();
+            csproj.Dispose();
 
-            string classDir, interfaceDir, structDir, delegateDir;
-            Directory.CreateDirectory(classDir = Path.Combine(dir, "Classes"));
-            Directory.CreateDirectory(interfaceDir = Path.Combine(dir, "Interfaces"));
-            Directory.CreateDirectory(structDir = Path.Combine(dir, "Structs"));
-            Directory.CreateDirectory(delegateDir = Path.Combine(dir, "Delegates"));
-            
-            WriteClasses(classDir, proj.Classes);
-            WriteStructs(structDir, proj.Structs);
-            WriteInterfaces(interfaceDir, proj.Interfaces);
-            WriteDelegates(delegateDir, proj.Delegates);
+            //string classDir, interfaceDir, structDir, delegateDir;
+            //Directory.CreateDirectory(classDir = Path.Combine(dir, "Classes"));
+            //Directory.CreateDirectory(interfaceDir = Path.Combine(dir, "Interfaces"));
+            //Directory.CreateDirectory(structDir = Path.Combine(dir, "Structs"));
+            //Directory.CreateDirectory(delegateDir = Path.Combine(dir, "Delegates"));
+            //
+            //WriteClasses(classDir, proj.Classes);
+            //WriteStructs(structDir, proj.Structs);
+            //WriteInterfaces(interfaceDir, proj.Interfaces);
+            //WriteDelegates(delegateDir, proj.Delegates);
         }
     }
 }

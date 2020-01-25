@@ -29,7 +29,7 @@ namespace Ultz.SuperBind.Writers.CSharp
                     fileName = structSpecification.Name + "." + i;
                 }
                 
-                WriteStruct(new StreamWriter(Path.Combine(dir, fileName + ".cs")), structSpecification);
+                WriteStruct(new StreamWriter(Path.Combine(dir, fileName + ".gen.cs")), structSpecification);
                 fileNames.Add(fileName);
             }
         }
@@ -49,6 +49,8 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine("    }");
             writer.WriteLine("}");
             writer.WriteLine();
+            writer.Flush();
+            writer.Close();
         }
 
         private static void MapUsings(StreamWriter writer, StructSpecification spec)

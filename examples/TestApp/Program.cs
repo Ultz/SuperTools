@@ -17,6 +17,7 @@ namespace TestApp
         private const bool AotTest = true;
         static unsafe void Main(string[] args)
         {
+            Span<byte> s;
             //var x = File.OpenWrite("b.dll");
             //AheadOfTimeActivator.WriteImplementation<TestClass>(x);
             //var y = File.OpenWrite("a.dll");

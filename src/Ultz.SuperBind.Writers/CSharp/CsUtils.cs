@@ -93,6 +93,11 @@ namespace Ultz.SuperBind.Writers.CSharp
         public static TypeReference WriteUsing(StreamWriter writer, TypeReference typeReference,
             ref Dictionary<string, string> referenceNames)
         {
+            if (typeReference is GenericTypeReference)
+            {
+                return typeReference;
+            }
+            
             TypeReference ret;
             if (!referenceNames.ContainsValue(typeReference.Namespace + "." + typeReference.Name))
             {

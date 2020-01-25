@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Ultz.SuperBind.Core
 {
-    public class ParameterSpecification
+    public class ParameterSpecification : ICloneable
     {
         public bool IsIn { get; set; }
         public bool IsOut { get; set; }
@@ -10,5 +12,17 @@ namespace Ultz.SuperBind.Core
         public CustomAttributeSpecification[] CustomAttributes { get; set; }
         public string Name { get; set; }
         public Dictionary<string, string> TempData { get; set; } = new Dictionary<string,string>();
+        public object Clone()
+        {
+            return new ParameterSpecification
+            {
+                IsIn = IsIn,
+                IsOut = IsOut,
+                CustomAttributes = CustomAttributes.ToArray(),
+                Name = Name,
+                TempData = TempData,
+                Type = (TypeReference) Type.Clone(),
+            };
+        }
     }
 }

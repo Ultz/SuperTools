@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -12,76 +13,176 @@ namespace Ultz.SuperBind.Binders.Khronos
 {
     public class GlBinder : IBinder<BinderOptions>
     {
+        private static List<string> _empty = new List<string>();
+        public static Dictionary<string, string> _nameMap = new Dictionary<string, string>
+        {
+            {"gl", "OpenGL.Legacy"},
+            {"glcore", "OpenGL"},
+            //{"gles1", "OpenGLES.Legacy"},
+            {"gles2", "OpenGLES"},
+            //{"glsc1", "OpenGLSC.Legacy"},
+            {"glsc2", "OpenGLSC"},
+            //{"disabled", "Disabled"},
+        };
+
         public string Prefix { get; set; } = "gl";
         public Dictionary<string, string> TypeMap { get; set; } = new Dictionary<string, string>();
+
+        private string Trim(string thing) => thing.ToUpper().StartsWith(Prefix.ToUpper() + "_")
+            ? thing.Substring(Prefix.Length + 1)
+            : thing.ToUpper().StartsWith(Prefix)
+                ? thing.Substring(Prefix.Length)
+                : thing;
 
         public ProjectSpecification[] GetProjects(BinderOptions t)
         {
             Current = XDocument.Load(t.SourceFile);
+            Prefix = t.Prefix;
             var allEnums = ReadEnumerants();
-            var allCommands = ReadMethods();
+            var allCommands = ReadMethods(t.Namespace);
             var rawProjects = ReadFeaturesAndExtensions();
-            var projects = new ProjectSpecification[rawProjects.Count];
-            for (var i = 0; i < projects.Length; i++)
+            var projects = new ProjectSpecification[rawProjects.Sum(x => x.VendorExtensions.Count + 1)];
+            var i = 0;
+            foreach (var api in rawProjects)
             {
-                var rawProject = rawProjects[i];
                 var enums = new List<EnumSpecification>
                 {
                     new EnumSpecification
                     {
                         Attributes = EnumAttributes.Public,
                         BaseType = CommonTypes.Int,
-                        Enumerants = HandleDuplicates(rawProject.EnumRequirements
-                            .Select(x => allEnums.FirstOrDefault(y => y.Name == x))
-                            .Where(x => !(x is null))).ToArray(),
-                        Name = $"{t.Prefix.ToUpper()}Enum",
-                        Namespace = t.Namespace
+                        CustomAttributes = new CustomAttributeSpecification[0],
+                        Enumerants = HandleDuplicates(api.Root.EnumerantRequirements.Select(x =>
+                            allEnums.FirstOrDefault(y => y.TempData["GL_NN"] == x)).Where(x => !(x is null))).ToArray(),
+                        Name = $"{t.ClassName}Enum",
+                        Namespace = $"{t.Namespace}.{api.Name}"
                     }
                 };
+                
+                AddGroups(enums, $"{t.Namespace}.{api.Name}");
 
-                var currentGroup = string.Empty;
-                var currentEnums = new List<EnumerantSpecification>();
-                foreach (var enumerant in enums[0].Enumerants.Where(x => !string.IsNullOrWhiteSpace(x.TempData["GL_GROUP"]))
-                    .OrderBy(x => x.TempData["GL_GROUP"]))
+                projects[i++] = new ProjectSpecification
                 {
-                    if (currentGroup != enumerant.TempData["GL_GROUP"])
+                    AssemblyReferences = new AssemblyReference[0],
+                    Classes = new[] {CreateClass(api.Root, api.Name)},
+                    Delegates = new DelegateSpecification[0],
+                    Interfaces = new InterfaceSpecification[0],
+                    Enums = enums.ToArray(),
+                    Items = new XElement[0],
+                    Name = $"{t.Namespace}.{api.Name}",
+                    PropFiles = t.Props.Select(x => new ProjectReference{Path = x}).ToArray(),
+                    TargetFrameworks = new []{"netstandard20"},
+                    Structs = new StructSpecification[0]
+                };
+
+                foreach (var ext in api.VendorExtensions)
+                {
+                    projects[i++] = new ProjectSpecification
                     {
-                        if (string.IsNullOrWhiteSpace(currentGroup))
-                        {
-                            currentGroup = enumerant.TempData["GL_GROUP"];
-                            currentEnums.Add(enumerant);
-                        }
-                        else
-                        {
-                            enums.Add(new EnumSpecification
-                            {
-                                Attributes = EnumAttributes.Public,
-                                BaseType = CommonTypes.Int,
-                                Enumerants = currentEnums.ToArray(),
-                                Name = currentGroup,
-                                Namespace = t.Namespace
-                            });
-                            currentEnums.Clear();
-                            currentGroup = enumerant.TempData["GL_GROUP"];
-                            currentEnums.Add(enumerant);
-                        }
+                        AssemblyReferences = new AssemblyReference[0],
+                        Classes = ext.Value.Select(x => CreateClass(x, api.Name, ext.Key)).ToArray(),
+                        Delegates = new DelegateSpecification[0],
+                        Interfaces = new InterfaceSpecification[0],
+                        Enums = new EnumSpecification[0],
+                        Items = new XElement[0],
+                        Name = $"{t.Namespace}.{api.Name}.Extensions.{ext.Key}",
+                        PropFiles = t.Props.Select(x => new ProjectReference{Path = x}).ToArray(),
+                        TargetFrameworks = new []{"netstandard20"},
+                        Structs = new StructSpecification[0]
+                    };
+                }
+            }
+
+            return projects;
+
+            ClassSpecification CreateClass(RequirementSpecification api, string apiSubNamespace, string ext = null) =>
+                new ClassSpecification
+                {
+                    Attributes = ClassAttributes.Public | ClassAttributes.Abstract | ClassAttributes.Partial,
+                    BaseClass = CommonTypes.NativeApiContainer,
+                    Constructors = new[] {CreateCtor()},
+                    CustomAttributes = new CustomAttributeSpecification[0],
+                    Fields = new FieldSpecification[0],
+                    Interfaces = new TypeReference[0],
+                    Methods = allCommands.Where(x => api.CommandRequirements.Contains(x.Name)).ToArray(),
+                    Name = t.Prefix.ToUpper(),
+                    Namespace = api.IsExtension
+                        ? $"{t.Namespace}.{apiSubNamespace}.Extensions.{ext}"
+                        : $"{t.Namespace}.{apiSubNamespace}",
+                    Properties = new PropertySpecification[0],
+                    TempData = new Dictionary<string, string> {{"IsExtension", api.IsExtension.ToString()}}
+                };
+        }
+
+        private ConstructorSpecification CreateCtor() => new ConstructorSpecification
+        {
+            Attributes = ConstructorAttributes.Public,
+            Body = new[] {": base(ref ctx)"},
+            Parameters = new[]
+            {
+                new ParameterSpecification
+                {
+                    IsIn = false,
+                    IsOut = false,
+                    Name = "ctx",
+                    Type = new TypeReference
+                    {
+                        ArrayDimensions = 0,
+                        FunctionPointerSpecification = null,
+                        GenericArguments = new TypeReference[0],
+                        IsByRef = true,
+                        Name = "NativeApiContext",
+                        Namespace = "Ultz.SuperInvoke",
+                        PointerLevels = 0
+                    }
+                },
+            }
+        };
+
+        private void AddGroups(IList<EnumSpecification> enums, string ns)
+        {
+            var currentGroup = string.Empty;
+            var currentEnums = new List<EnumerantSpecification>();
+            foreach (var enumerant in enums[0].Enumerants.Where(x => !string.IsNullOrWhiteSpace(x.TempData["GL_GROUP"]))
+                .OrderBy(x => x.TempData["GL_GROUP"]))
+            {
+                if (currentGroup != enumerant.TempData["GL_GROUP"])
+                {
+                    if (string.IsNullOrWhiteSpace(currentGroup))
+                    {
+                        currentGroup = enumerant.TempData["GL_GROUP"];
+                        currentEnums.Add(enumerant);
                     }
                     else
                     {
+                        enums.Add(new EnumSpecification
+                        {
+                            Attributes = EnumAttributes.Public,
+                            BaseType = CommonTypes.Int,
+                            Enumerants = currentEnums.ToArray(),
+                            Name = currentGroup,
+                            Namespace = ns
+                        });
+                        currentEnums.Clear();
+                        currentGroup = enumerant.TempData["GL_GROUP"];
                         currentEnums.Add(enumerant);
                     }
                 }
-
-                enums.Add(new EnumSpecification
+                else
                 {
-                    Attributes = EnumAttributes.Public,
-                    BaseType = CommonTypes.Int,
-                    Enumerants = currentEnums.ToArray(),
-                    Name = currentGroup,
-                    Namespace = t.Namespace
-                });
-                currentEnums.Clear();
+                    currentEnums.Add(enumerant);
+                }
             }
+
+            enums.Add(new EnumSpecification
+            {
+                Attributes = EnumAttributes.Public,
+                BaseType = CommonTypes.Int,
+                Enumerants = currentEnums.ToArray(),
+                Name = currentGroup,
+                Namespace = ns
+            });
+            currentEnums.Clear();
         }
 
         private IEnumerable<EnumerantSpecification> HandleDuplicates(IEnumerable<EnumerantSpecification> enums)
@@ -95,7 +196,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                 }
                 else
                 {
-                    if ((int?)ret[@enum.Name].Value == (int?)@enum.Value)
+                    if ((int?) ret[@enum.Name].Value == (int?) @enum.Value)
                     {
                         continue;
                     }
@@ -115,64 +216,133 @@ namespace Ultz.SuperBind.Binders.Khronos
 
         public List<ApiSpecification> ReadFeaturesAndExtensions()
         {
-            var l = new List<ApiSpecification>();
+            var apis = new Dictionary<string, List<RequirementSpecification>>();
             foreach (var feature in Current.Element("registry").Elements("feature"))
             {
-                var cmdRemovals = feature.Elements("remove").Elements("command").Select(x => x.Attribute("name")?.Value)
-                    .ToArray();
-                var enumRemovals = feature.Elements("remove").Elements("enum").Select(x => x.Attribute("name")?.Value)
-                    .ToArray();
-                var y = new ApiSpecification
+                var api = feature.Attribute("api")?.Value;
+                var requirements = feature.Elements("require");
+                var removals = feature.Elements("remove");
+                var requirement = new RequirementSpecification
                 {
-                    Apis = new[] {feature.Attribute("api")?.Value},
-                    CommandRequirements = feature.Elements("require").Elements("command")
-                        .Select(x => x.Attribute("name")?.Value)
-                        .ToArray(),
-                    EnumRequirements = feature.Elements("require").Elements("enum")
-                        .Select(x => x.Attribute("name")?.Value)
-                        .ToArray(),
+                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value).ToList(),
+                    EnumerantRequirements = requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
+                    TypeRequirements = _empty,
                     IsExtension = false,
-                    Name = feature.Attribute("name")?.Value,
-                    Number = float.Parse(feature.Attribute("number")?.Value),
-                    TypeRequirements = new string[0]
+                    Name = feature.Attribute("name")?.Value
                 };
 
-                l.Add(y);
-                if (y.Apis[0] == "gl")
+                Require(api, requirement);
+
+                if (api == "gl")
                 {
-                    l.Add(new ApiSpecification
+                    Require("glcore", new RequirementSpecification
                     {
-                        Apis = new[] {"glcore"},
-                        CommandRequirements = y.CommandRequirements.Where(x => !cmdRemovals.Contains(x)).ToArray(),
-                        EnumRequirements = y.EnumRequirements.Where(x => !enumRemovals.Contains(x)).ToArray(),
+                        CommandRequirements = requirement.CommandRequirements.Where(x =>
+                            removals.Elements("command").All(y => y.Attribute("name")?.Value != x)).ToList(),
+                        EnumerantRequirements = requirement.CommandRequirements.Where(x =>
+                            removals.Elements("enum").All(y => y.Attribute("name")?.Value != x)).ToList(),
+                        TypeRequirements = requirement.TypeRequirements,
                         IsExtension = false,
-                        Name = y.Name,
-                        Number = y.Number,
-                        TypeRequirements = y.TypeRequirements
+                        Name = requirement.Name
                     });
                 }
             }
 
-            l.AddRange(Current.Element("registry")
-                .Elements("extension")
-                .Select(extension => new ApiSpecification
+            foreach (var extension in Current.Element("registry").Element("extensions").Elements("extension"))
+            {
+                var requirements = extension.Elements("require");
+                var requirement = new RequirementSpecification
                 {
-                    Apis = extension.Attribute("supported")?.Value.Split('|'),
-                    CommandRequirements = extension.Elements("require")
-                        .Elements("command")
-                        .Select(x => x.Attribute("name")?.Value)
-                        .ToArray(),
-                    EnumRequirements = extension.Elements("require")
-                        .Elements("enum")
-                        .Select(x => x.Attribute("name")?.Value)
-                        .ToArray(),
+                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value).ToList(),
+                    EnumerantRequirements = requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
+                    TypeRequirements = _empty,
                     IsExtension = true,
-                    Name = extension.Attribute("name")?.Value,
-                    Number = 0.0f,
-                    TypeRequirements = new string[0]
-                }));
+                    Name = extension.Attribute("name")?.Value
+                };
 
-            return l;
+                foreach (var api in extension.Attribute("supported")?.Value.Split('|'))
+                {
+                    Require(api, requirement);
+                }
+            }
+
+            return apis.Where(x => _nameMap.ContainsKey(x.Key)).Select(api => new ApiSpecification
+            {
+                Name = _nameMap[api.Key],
+                Root = Merge(api.Value.Where(x => !x.IsExtension)),
+                VendorExtensions = MergeExt(api.Value.Where(x => x.IsExtension))
+            }).ToList();
+
+            RequirementSpecification Merge(IEnumerable<RequirementSpecification> reqs)
+            {
+                var reqsArray = reqs as RequirementSpecification[] ?? reqs.ToArray();
+                return new RequirementSpecification
+                {
+                    CommandRequirements = reqsArray.SelectMany(x => x.CommandRequirements).ToList(),
+                    EnumerantRequirements = reqsArray.SelectMany(x => x.EnumerantRequirements).ToList(),
+                    TypeRequirements = _empty,
+                    IsExtension = false,
+                    Name = reqsArray.Select(x => x.Name).OrderByDescending(x => x).FirstOrDefault()
+                };
+            }
+
+            Dictionary<string, RequirementSpecification[]> MergeExt(IEnumerable<RequirementSpecification> reqs)
+            {
+                var ret = new Dictionary<string, List<RequirementSpecification>>();
+                foreach (var req in reqs)
+                {
+                    var vendor = req.Name.Split('_')[1];
+                    if (!ret.ContainsKey(vendor))
+                    {
+                        ret[vendor] = new List<RequirementSpecification>
+                        {
+                            new RequirementSpecification{
+                            CommandRequirements = NewList(req.CommandRequirements),
+                            EnumerantRequirements = NewList(req.EnumerantRequirements),
+                            TypeRequirements = _empty,
+                            IsExtension = true,
+                            Name = Trim(req.Name)
+                            }
+                        };
+                    }
+                    else
+                    {
+                        var v = ret[vendor];
+                        v.Add
+                        (
+                            new RequirementSpecification
+                            {
+                                CommandRequirements = NewList(req.CommandRequirements),
+                                EnumerantRequirements = NewList(req.EnumerantRequirements),
+                                TypeRequirements = _empty,
+                                IsExtension = true,
+                                Name = Trim(req.Name)
+                            }
+                        );
+                    }
+                }
+
+                return ret.ToDictionary(x => x.Key, x => x.Value.ToArray());
+            }
+
+            void Require(string api, RequirementSpecification req)
+            {
+                if (!apis.ContainsKey(api))
+                {
+                    apis[api] = new List<RequirementSpecification> {req};
+                }
+                else
+                {
+                    apis[api].Add(req);
+                }
+            }
+        }
+
+        private List<T> NewList<T>(IEnumerable<T> enumerable)
+        {
+            var list = new List<T>();
+            list.AddRange(enumerable);
+            return list;
         }
 
         public EnumerantSpecification[] ReadEnumerants() => Current.Element("registry")
@@ -191,7 +361,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                 Value = FormatToken(@t.@t.@enum.Attribute("value")?.Value)
             }).ToArray();
 
-        public MethodSpecification[] ReadMethods() => Current.Element("registry")
+        public MethodSpecification[] ReadMethods(string ns) => Current.Element("registry")
             .Elements("commands")
             .Elements("command")
             .Select(cmd => new MethodSpecification
@@ -209,6 +379,10 @@ namespace Ultz.SuperBind.Binders.Khronos
                 },
                 Name = Naming.Translate(name, Prefix),
                 Parameters = ParseParameters(cmd),
+                TempData =
+                {
+                    ["GL_GROUP_NAMESPACE"] = ns
+                }
             })
             .ToArray();
 
@@ -219,7 +393,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                 IsOut = false,
                 Type = MapType(ParseType(GetType(param))),
                 Name = param.Element("name")?.Value,
-                TempData = {["GL_LEN"] = param.Attribute("len")?.Value, ["GL_GROUP"] = param.Attribute("group")?.Value}
+                TempData = {["KHR_LEN"] = param.Attribute("len")?.Value, ["GL_GROUP"] = param.Attribute("group")?.Value}
             })
             .ToArray();
 
@@ -242,7 +416,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                 Name = name,
                 TempData =
                 {
-                    ["GL_LEN"] = proto.Attribute("len")?.Value,
+                    ["KHR_LEN"] = proto.Attribute("len")?.Value,
                     ["GL_GROUP"] = proto.Attribute("group")?.Value
                 }
             };

@@ -13,6 +13,7 @@ namespace Ultz.SuperBind.Core
         public StructSpecification[] Structs { get; set; }
         public InterfaceSpecification[] Interfaces { get; set; }
         public DelegateSpecification[] Delegates { get; set; }
+        public EnumSpecification[] Enums { get; set; }
         public PackageReference[] PackageReferences { get; set; }
         public ProjectReference[] ProjectReferences { get; set; }
         public AssemblyReference[] AssemblyReferences { get; set; }

@@ -9,6 +9,12 @@ namespace Ultz.SuperBind.Binders.Common
             ArrayDimensions = 0, FunctionPointerSpecification = null, GenericArguments = new TypeReference[0],
             Name = "NativeApiAttribute", Namespace = "Ultz.SuperInvoke", IsByRef = false, PointerLevels = 0
         };
+        
+        public static TypeReference NativeApiContainer { get; } = new TypeReference
+        {
+            ArrayDimensions = 0, FunctionPointerSpecification = null, GenericArguments = new TypeReference[0],
+            Name = "NativeApiContainer", Namespace = "Ultz.SuperInvoke", IsByRef = false, PointerLevels = 0
+        };
 
         public static TypeReference Int { get; } = new TypeReference
         {

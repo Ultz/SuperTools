@@ -28,7 +28,7 @@ namespace Ultz.SuperBind.Writers.CSharp
                     fileName = classSpecification.Name + "." + i;
                 }
                 
-                WriteDelegate(new StreamWriter(Path.Combine(dir, fileName + ".cs")), classSpecification);
+                WriteDelegate(new StreamWriter(Path.Combine(dir, fileName + ".gen.cs")), classSpecification);
                 fileNames.Add(fileName);
             }
         }
@@ -45,6 +45,8 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine("    );");
             writer.WriteLine("}");
             writer.WriteLine();
+            writer.Flush();
+            writer.Close();
         }
 
         private static void MapUsings(StreamWriter writer, DelegateSpecification spec)
