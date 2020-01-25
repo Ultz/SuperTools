@@ -7,7 +7,7 @@ namespace Ultz.SuperBind.Core
     {
         public string Name { get; set; }
         public object Value { get; set; }
-        public CustomAttributeSpecification[] CustomAttributes { get; set; }
+        public CustomAttributeSpecification[] CustomAttributes { get; set; } = Array.Empty<CustomAttributeSpecification>();
         public string XmlDoc { get; set; }
         public Dictionary<string, string> TempData { get; set; } = new Dictionary<string, string>();
     }

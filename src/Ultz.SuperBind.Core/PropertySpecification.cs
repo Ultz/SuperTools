@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Ultz.SuperBind.Core
 {
@@ -8,7 +9,8 @@ namespace Ultz.SuperBind.Core
         public PropertyAttributes Attributes { get; set; }
         public TypeReference Type { get; set; }
         public string XmlDoc { get; set; }
-        public CustomAttributeSpecification[] CustomAttributes { get; set; }
+        public CustomAttributeSpecification[] CustomAttributes { get; set; } =
+            Array.Empty<CustomAttributeSpecification>();
         public bool HasGetter { get; set; }
         public bool HasSetter { get; set; }
         public object? GetterBody { get; set; }
