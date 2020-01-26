@@ -4,6 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using Ultz.SuperBind.Binders.Khronos;
 using Ultz.SuperBind.Core;
 using Ultz.SuperBind.Tasks.Silk.NET;
@@ -46,6 +49,7 @@ namespace BinderTest
                     x => ((IPostProcessor) Activator.CreateInstance(Type.GetType(postProcessor))).Apply(x));
                 var glBinder = new GlBinder {TypeMap = processedTypeMaps};
                 var projects = glBinder.GetProjects(opts);
+                File.WriteAllText("Test/Test.json", JsonConvert.SerializeObject(projects, Formatting.Indented));
                 var writer = new CSharpWriter {RootPath = "Test"};
                 writer.WriteItems(projects);
             }

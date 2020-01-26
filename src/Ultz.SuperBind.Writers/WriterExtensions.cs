@@ -13,20 +13,23 @@ namespace Ultz.SuperBind.Writers
             }
         }
 
-        public static void WriteProject(this IWriter writer, ProjectSpecification spec)
+        public static void WriteProject(this IWriter writer, ProjectSpecification spec, bool init = true)
         {
-            writer.Initialize();
+            if (init){writer.Initialize(spec);}
             writer.WriteProjectData(spec);
-            writer.WriteItems(spec);
+            writer.WriteItems(spec, false);
+            if (init){writer.Reset();}
         }
 
-        public static void WriteItems(this IWriter writer, ProjectSpecification spec)
+        public static void WriteItems(this IWriter writer, ProjectSpecification spec, bool init = true)
         {
-            writer.Initialize();
+            if (init){writer.Initialize(spec);}
             writer.WriteClasses(spec.Classes);
             writer.WriteInterfaces(spec.Interfaces);
             writer.WriteStructs(spec.Structs);
             writer.WriteDelegates(spec.Delegates);
+            writer.WriteEnums(spec.Enums);
+            if (init){writer.Reset();}
         }
 
         public static void WriteInterfaces(this IWriter writer, IEnumerable<InterfaceSpecification> spec)
@@ -50,6 +53,14 @@ namespace Ultz.SuperBind.Writers
             foreach (var s in spec)
             {
                 writer.WriteClass(s);
+            }
+        }
+
+        public static void WriteEnums(this IWriter writer, IEnumerable<EnumSpecification> spec)
+        {
+            foreach (var s in spec)
+            {
+                writer.WriteEnum(s);
             }
         }
 

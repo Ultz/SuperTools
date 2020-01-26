@@ -183,6 +183,12 @@ namespace Ultz.SuperBind.Writers.CSharp
                    string.Join(", ", reference.GenericArguments?.Select(GetTypeRef) ?? Array.Empty<string>());
         }
 
+        public static string GetBaseString(TypeReference baseType, TypeReference[] interfaces) =>
+            !(baseType is null) || interfaces.Length > 0
+                ? " : " + (baseType is null ? string.Empty : $"{baseType.Name}, ") +
+                  string.Join(", ", interfaces.Select(x => x.Name))
+                : null;
+
         public static string Name(string name)
         {
             return (CSharpKeywords.Contains(name) ? "@" : string.Empty) + name;

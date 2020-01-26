@@ -43,7 +43,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine();
             writer.WriteLine($"namespace {spec.Namespace}");
             writer.WriteLine("{");
-            writer.WriteLine($"    {GetAttributes(spec.Attributes)}class");
+            writer.WriteLine($"    {GetAttributes(spec.Attributes)}class {spec.Name}{GetBaseString(spec.BaseClass, spec.Interfaces)}");
             writer.WriteLine("    {");
             WriteFields(writer, spec.Fields);
             WriteConstructors(writer, spec);

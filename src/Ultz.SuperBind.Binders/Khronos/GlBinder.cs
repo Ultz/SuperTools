@@ -14,6 +14,7 @@ namespace Ultz.SuperBind.Binders.Khronos
     public class GlBinder : IBinder<BinderOptions>
     {
         private static List<string> _empty = new List<string>();
+
         public static Dictionary<string, string> _nameMap = new Dictionary<string, string>
         {
             {"gl", "OpenGL.Legacy"},
@@ -27,12 +28,6 @@ namespace Ultz.SuperBind.Binders.Khronos
 
         public string Prefix { get; set; } = "gl";
         public Dictionary<string, string> TypeMap { get; set; } = new Dictionary<string, string>();
-
-        private string Trim(string thing) => thing.ToUpper().StartsWith(Prefix.ToUpper() + "_")
-            ? thing.Substring(Prefix.Length + 1)
-            : thing.ToUpper().StartsWith(Prefix)
-                ? thing.Substring(Prefix.Length)
-                : thing;
 
         public ProjectSpecification[] GetProjects(BinderOptions t)
         {
@@ -58,7 +53,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                         Namespace = $"{t.Namespace}.{api.Name}"
                     }
                 };
-                
+
                 AddGroups(enums, $"{t.Namespace}.{api.Name}");
 
                 projects[i++] = new ProjectSpecification
@@ -70,8 +65,8 @@ namespace Ultz.SuperBind.Binders.Khronos
                     Enums = enums.ToArray(),
                     Items = new XElement[0],
                     Name = $"{t.Namespace}.{api.Name}",
-                    PropFiles = t.Props.Select(x => new ProjectReference{Path = x}).ToArray(),
-                    TargetFrameworks = new []{"netstandard20"},
+                    PropFiles = t.Props.Select(x => new ProjectReference {Path = x}).ToArray(),
+                    TargetFrameworks = new[] {"netstandard20"},
                     Structs = new StructSpecification[0]
                 };
 
@@ -86,8 +81,8 @@ namespace Ultz.SuperBind.Binders.Khronos
                         Enums = new EnumSpecification[0],
                         Items = new XElement[0],
                         Name = $"{t.Namespace}.{api.Name}.Extensions.{ext.Key}",
-                        PropFiles = t.Props.Select(x => new ProjectReference{Path = x}).ToArray(),
-                        TargetFrameworks = new []{"netstandard20"},
+                        PropFiles = t.Props.Select(x => new ProjectReference {Path = x}).ToArray(),
+                        TargetFrameworks = new[] {"netstandard20"},
                         Structs = new StructSpecification[0]
                     };
                 }
@@ -104,8 +99,8 @@ namespace Ultz.SuperBind.Binders.Khronos
                     CustomAttributes = new CustomAttributeSpecification[0],
                     Fields = new FieldSpecification[0],
                     Interfaces = new TypeReference[0],
-                    Methods = allCommands.Where(x => api.CommandRequirements.Contains(x.Name)).ToArray(),
-                    Name = t.Prefix.ToUpper(),
+                    Methods = allCommands.Where(x => api.CommandRequirements.Contains(x.TempData["GL_ORIGINAL_NAME"])).ToArray(),
+                    Name = api.IsExtension ? Naming.Translate(api.Name, t.Prefix) : t.Prefix.ToUpper(),
                     Namespace = api.IsExtension
                         ? $"{t.Namespace}.{apiSubNamespace}.Extensions.{ext}"
                         : $"{t.Namespace}.{apiSubNamespace}",
@@ -143,14 +138,15 @@ namespace Ultz.SuperBind.Binders.Khronos
         {
             var currentGroup = string.Empty;
             var currentEnums = new List<EnumerantSpecification>();
-            foreach (var enumerant in enums[0].Enumerants.Where(x => !string.IsNullOrWhiteSpace(x.TempData["GL_GROUP"]))
-                .OrderBy(x => x.TempData["GL_GROUP"]))
+            foreach (var (enumerant, group) in enums[0].Enumerants.Where(x => !string.IsNullOrWhiteSpace(x.TempData["GL_GROUP"]))
+                .SelectMany(x => x.TempData["GL_GROUP"].Split(',').Select(y => (x, y)))
+                .OrderBy(x => x.Item2))
             {
-                if (currentGroup != enumerant.TempData["GL_GROUP"])
+                if (currentGroup != group)
                 {
                     if (string.IsNullOrWhiteSpace(currentGroup))
                     {
-                        currentGroup = enumerant.TempData["GL_GROUP"];
+                        currentGroup = group;
                         currentEnums.Add(enumerant);
                     }
                     else
@@ -164,7 +160,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                             Namespace = ns
                         });
                         currentEnums.Clear();
-                        currentGroup = enumerant.TempData["GL_GROUP"];
+                        currentGroup = group;
                         currentEnums.Add(enumerant);
                     }
                 }
@@ -224,8 +220,10 @@ namespace Ultz.SuperBind.Binders.Khronos
                 var removals = feature.Elements("remove");
                 var requirement = new RequirementSpecification
                 {
-                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value).ToList(),
-                    EnumerantRequirements = requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
+                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value)
+                        .ToList(),
+                    EnumerantRequirements =
+                        requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
                     TypeRequirements = _empty,
                     IsExtension = false,
                     Name = feature.Attribute("name")?.Value
@@ -253,8 +251,10 @@ namespace Ultz.SuperBind.Binders.Khronos
                 var requirements = extension.Elements("require");
                 var requirement = new RequirementSpecification
                 {
-                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value).ToList(),
-                    EnumerantRequirements = requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
+                    CommandRequirements = requirements.Elements("command").Select(x => x.Attribute("name")?.Value)
+                        .ToList(),
+                    EnumerantRequirements =
+                        requirements.Elements("enum").Select(x => x.Attribute("name")?.Value).ToList(),
                     TypeRequirements = _empty,
                     IsExtension = true,
                     Name = extension.Attribute("name")?.Value
@@ -296,12 +296,13 @@ namespace Ultz.SuperBind.Binders.Khronos
                     {
                         ret[vendor] = new List<RequirementSpecification>
                         {
-                            new RequirementSpecification{
-                            CommandRequirements = NewList(req.CommandRequirements),
-                            EnumerantRequirements = NewList(req.EnumerantRequirements),
-                            TypeRequirements = _empty,
-                            IsExtension = true,
-                            Name = Trim(req.Name)
+                            new RequirementSpecification
+                            {
+                                CommandRequirements = NewList(req.CommandRequirements),
+                                EnumerantRequirements = NewList(req.EnumerantRequirements),
+                                TypeRequirements = _empty,
+                                IsExtension = true,
+                                Name = Naming.Trim(req.Name, Prefix)
                             }
                         };
                     }
@@ -316,7 +317,7 @@ namespace Ultz.SuperBind.Binders.Khronos
                                 EnumerantRequirements = NewList(req.EnumerantRequirements),
                                 TypeRequirements = _empty,
                                 IsExtension = true,
-                                Name = Trim(req.Name)
+                                Name = Naming.Trim(req.Name, Prefix)
                             }
                         );
                     }
@@ -381,7 +382,8 @@ namespace Ultz.SuperBind.Binders.Khronos
                 Parameters = ParseParameters(cmd),
                 TempData =
                 {
-                    ["GL_GROUP_NAMESPACE"] = ns
+                    ["GL_GROUP_NAMESPACE"] = ns,
+                    ["GL_ORIGINAL_NAME"] = cmd.Element("proto").Element("name")?.Value
                 }
             })
             .ToArray();

@@ -40,7 +40,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine();
             writer.WriteLine($"namespace {spec.Namespace}");
             writer.WriteLine("{");
-            writer.WriteLine($"    {GetAttributes(spec.Attributes)}struct");
+            writer.WriteLine($"    {GetAttributes(spec.Attributes)}struct {spec.Name}{GetBaseString(null, spec.Interfaces)}");
             writer.WriteLine("    {");
             WriteFields(writer, spec.Fields);
             WriteConstructors(writer, spec);

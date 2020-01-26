@@ -51,7 +51,7 @@ namespace Ultz.SuperBind.Binders.Common
         /// <returns>The translated name.</returns>
         public static string Translate(string name, string prefix)
         {
-            var builder = new StringBuilder(name);
+            var builder = new StringBuilder(Trim(name, prefix));
 
             foreach (var match in LongAcronymsRegex.Matches(builder.ToString()).Cast<Match>())
             {
@@ -87,7 +87,7 @@ namespace Ultz.SuperBind.Binders.Common
 
         public static string TranslateLite(string name, string prefix)
         {
-            var builder = new StringBuilder(name);
+            var builder = new StringBuilder(Trim(name, prefix));
 
             if (char.IsDigit(builder[0]))
             {
@@ -107,5 +107,11 @@ namespace Ultz.SuperBind.Binders.Common
 
             return name;
         }
+
+        public static string Trim(string thing, string prefix) => thing.ToUpper().StartsWith(prefix.ToUpper() + "_")
+            ? thing.Substring(prefix.Length + 1)
+            : thing.ToUpper().StartsWith(prefix)
+                ? thing.Substring(prefix.Length)
+                : thing;
     }
 }

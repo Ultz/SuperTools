@@ -61,9 +61,9 @@ namespace Ultz.SuperBind.Core
                 IsByRef = IsByRef, 
                 ArrayDimensions = ArrayDimensions,
                 PointerLevels = PointerLevels, 
-                GenericArguments = GenericArguments.ToArray(),
+                GenericArguments = GenericArguments?.ToArray(),
                 FunctionPointerSpecification = FunctionPointerSpecification, // todo clone this
-                TempData = TempData.ToDictionary(x => x.Key, x => x.Value)
+                TempData = TempData?.ToDictionary(x => x.Key, x => x.Value)
             };
         }
     }

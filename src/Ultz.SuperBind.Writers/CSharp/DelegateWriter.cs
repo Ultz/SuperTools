@@ -39,7 +39,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             writer.WriteLine();
             writer.WriteLine($"namespace {spec.Namespace}");
             writer.WriteLine("{");
-            writer.WriteLine($"    {GetAttributes(spec.Attributes)}delegate {GetTypeRef(spec.ReturnParameter.Type, true)}");
+            writer.WriteLine($"    {GetAttributes(spec.Attributes)}delegate {GetTypeRef(spec.ReturnParameter.Type, true)} {spec.Name}");
             writer.WriteLine("    (");
             WriteParameters(writer, spec.Parameters);
             writer.WriteLine("    );");
