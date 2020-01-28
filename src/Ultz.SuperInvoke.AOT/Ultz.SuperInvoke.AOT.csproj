@@ -6,7 +6,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj" />
-      <ProjectReference Include="..\Ultz.SuperPack\Ultz.SuperPack.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Lokad.ILPack" Version="0.1.3" />
     </ItemGroup>
 
 </Project>

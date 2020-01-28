@@ -12,11 +12,16 @@ namespace Ultz.SuperInvoke.InteropServices
 
         public static IMarshaller[] DefaultStages { get; } =
         {
-            new PinObjectMarshaller(),
-            new BoolMarshaller()
+            new PinObjectMarshaller(), // at the top so that the object is pinned when it reaches everything else
+            new DelegateMarshaller(), // upper to get rid of delegates early.
+            new StringMarshaller(),
+            new RefMarshaller(),
+            new BoolMarshaller(),
+            new MergeMarshaller(),
+            new PinnableReferenceMarshaller(),
         };
 
-        public IMarshaller[] Stages { get; set; }
+        public IMarshaller[] Stages { get; set; } = DefaultStages;
         public override void GenerateMethod(in MethodGenerationContext ctx) => Marshal(ctx);
 
         private void Marshal(MethodGenerationContext ctx)

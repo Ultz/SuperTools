@@ -1,6 +1,6 @@
 ﻿using System;
+using Lokad.ILPack;
 using Ultz.SuperInvoke.Emit;
-using Ultz.SuperPack;
 
 namespace Ultz.SuperInvoke.AOT
 {
@@ -8,7 +8,7 @@ namespace Ultz.SuperInvoke.AOT
     {
         public static byte[] BuildBytes(this LibraryBuilder builder)
         {
-            return builder.Build().Save();
+            return new AssemblyGenerator().GenerateAssemblyBytes(builder.Build());
         }
     }
 }
