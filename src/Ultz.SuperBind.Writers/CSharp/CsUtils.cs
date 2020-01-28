@@ -99,7 +99,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             }
             
             TypeReference ret;
-            if (!referenceNames.ContainsValue(typeReference.Namespace + "." + typeReference.Name))
+            if (!referenceNames.ContainsValue(GetFullName(typeReference)))
             {
                 if (referenceNames.ContainsKey(typeReference.Name))
                 {
@@ -115,14 +115,14 @@ namespace Ultz.SuperBind.Writers.CSharp
 
                     var clone = (TypeReference) typeReference.Clone();
                     typeReference.Name = name;
-                    referenceNames.Add(name, typeReference.Namespace + "." + typeReference.Name);
+                    referenceNames.Add(name, GetFullName(typeReference));
                     ret = clone;
                     writer.WriteLine($"using {name} = {typeReference.Namespace}.{typeReference.Name};");
                 }
                 else
                 {
                     writer.WriteLine($"using {typeReference.Name} = {typeReference.Namespace}.{typeReference.Name};");
-                    referenceNames.Add(typeReference.Name, typeReference.Namespace + "." + typeReference.Name);
+                    referenceNames.Add(typeReference.Name, GetFullName(typeReference));
                     ret = typeReference;
                 }
             }
@@ -130,7 +130,7 @@ namespace Ultz.SuperBind.Writers.CSharp
             {
                 var key = referenceNames.Select(x => (KeyValuePair<string, string>?) x)
                     .FirstOrDefault(x =>
-                        x.Value.Value == typeReference.Namespace + "." + typeReference.Name);
+                        x.Value.Value == GetFullName(typeReference));
                 if (!key.HasValue)
                 {
                     throw new Exception("what"); // TODO throw something better here but wtf
@@ -141,6 +141,9 @@ namespace Ultz.SuperBind.Writers.CSharp
             }
 
             return ret;
+
+            string GetFullName(TypeReference tRef) =>
+                (string.IsNullOrWhiteSpace(tRef.Namespace) ? null : tRef.Namespace + ".") + tRef.Name;
         }
 
         public static void WriteParameters(StreamWriter writer, IReadOnlyList<ParameterSpecification> parameters)

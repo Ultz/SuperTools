@@ -414,7 +414,7 @@ namespace Ultz.SuperBind.Binders.Khronos
             {
                 IsIn = proto.Value.StartsWith("const"),
                 IsOut = false,
-                Type = MapType(ParseType(GetType(cmd))),
+                Type = MapType(ParseType(GetType(proto))),
                 Name = name,
                 TempData =
                 {
@@ -456,6 +456,7 @@ namespace Ultz.SuperBind.Binders.Khronos
 
             TypeReference ParseMapType(string s)
             {
+                var snc = s.Replace("const", "").Trim();
                 var parts = s.Split('.');
                 return new TypeReference
                 {
