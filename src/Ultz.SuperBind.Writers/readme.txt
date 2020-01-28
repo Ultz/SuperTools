@@ -1,2 +1,0 @@
-﻿This project contains all of the output modes that SuperBind supports. Currently, only C# plaintext is supported, but in
-the future we plan to add support for outputting directly to IL (Project Nathaniel)
