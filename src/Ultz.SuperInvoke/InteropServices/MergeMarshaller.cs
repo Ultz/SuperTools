@@ -36,12 +36,12 @@ namespace Ultz.SuperInvoke.InteropServices
                 }
 
                 var elementSize = NetMarshal.SizeOf(param.Type);
-                il.Emit(OpCodes.Ldc_I4, attr.Count * elementSize);
+                il.Emit(OpCodes.Ldc_I4, (attr.Count + 1) * elementSize);
                 il.Emit(OpCodes.Conv_U);
                 il.Emit(OpCodes.Localloc);
                 var local = il.DeclareLocal(param.Type.MakePointerType());
                 il.Emit(OpCodes.Stloc, local);
-                for (var j = 0; j < attr.Count; j++)
+                for (var j = 0; j < attr.Count + 1; j++)
                 {
                     il.Emit(OpCodes.Ldloc, local);
                     if (j != 0)
@@ -50,7 +50,8 @@ namespace Ultz.SuperInvoke.InteropServices
                         il.Emit(OpCodes.Add);
                     }
 
-                    il.Emit(OpCodes.Ldarg, i + j + 1);
+                    il.Emit(OpCodes.Ldarg, i++ + 1);
+                    il.Emit(OpCodes.Stobj);
 
                     if (param.Type == typeof(int))
                     {
@@ -115,7 +116,7 @@ namespace Ultz.SuperInvoke.InteropServices
                     }
                 }
 
-                pTypes.Add(param.Type);
+                pTypes.Add(param.Type.MakePointerType());
                 pAttrs.Add(new CustomAttributeBuilder[0]);
             }
 

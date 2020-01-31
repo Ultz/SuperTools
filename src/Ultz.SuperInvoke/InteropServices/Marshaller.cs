@@ -73,6 +73,7 @@ namespace Ultz.SuperInvoke.InteropServices
             ));
 
             // Emit the actual method using the default generator
+            ctx.IL.Emit(OpCodes.Ldarg_0);
             BaseGenerator.EmitPrologue(ctx); // pass all parameters as-is
             ctx.IL.Emit(OpCodes.Call, entry); // call the first marshalling wrapper
             BaseGenerator.EmitEpilogue(ctx); // call the default epilogue generator
@@ -108,7 +109,6 @@ namespace Ultz.SuperInvoke.InteropServices
                     til.Emit(OpCodes.Ret);
                     terminator.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes)512);
                     il.Emit(OpCodes.Call, terminator);
-                    il.Emit(OpCodes.Ret);
                 }
                 else
                 {
