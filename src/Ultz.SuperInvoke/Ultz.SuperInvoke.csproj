@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;netcoreapp30</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;netcoreapp30;net461</TargetFrameworks>
         <LangVersion>8</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>

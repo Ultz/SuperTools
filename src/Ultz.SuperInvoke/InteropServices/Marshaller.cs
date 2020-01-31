@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using Ultz.SuperInvoke.Emit;
 
 namespace Ultz.SuperInvoke.InteropServices
@@ -55,7 +57,14 @@ namespace Ultz.SuperInvoke.InteropServices
                 GetName(firstStage, ctx.OriginalMethod.Name, iteration++),
                 MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
                 ctx.OriginalMethod.CallingConvention, ctx.OriginalMethod.ReturnType,
-                ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray());
+                ctx.OriginalMethod.ReturnParameter.GetRequiredCustomModifiers(),
+                ctx.OriginalMethod.ReturnParameter.GetOptionalCustomModifiers(),
+                ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray(),
+                ctx.OriginalMethod.GetParameters().Select(x => x.GetRequiredCustomModifiers()).ToArray(),
+                ctx.OriginalMethod.GetParameters().Select(x => x.GetOptionalCustomModifiers()).ToArray());
+            entry.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes) 512);
+            ctx.DestinationMethod.SetImplementationFlags(MethodImplAttributes.AggressiveInlining |
+                                                         (MethodImplAttributes) 512);
 
             // Generate the marshalling wrappers (the first one will call EmitCall, which will then gen the next, etc.)
             firstStage.Marshal(new MethodMarshalContext(ctx.DestinationMethod, ctx.Slot, entry,
@@ -80,24 +89,45 @@ namespace Ultz.SuperInvoke.InteropServices
                 {
                     NativeReturnType = ret.Type;
                     NativeParameterTypes = parameters.Select(x => x.Type).ToArray();
-                    BaseGenerator.EmitEntryPoint(il, ctx.Slot, ctx.EntryPoint);
-                    BaseGenerator.EmitNativeCall(il, ctx.Convention, wip, ret.Type,
+                    var terminator = typeBuilder.DefineMethod(
+                        GetName(null, ctx.OriginalMethod.Name, iteration++),
+                        MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
+                        wip.CallingConvention, ret.Type, ret.RequiredModifiers, ret.OptionalModifiers,
+                        parameters.Select(x => x.Type).ToArray(),
+                        parameters.Select(x => x.RequiredModifiers).ToArray(),
+                        parameters.Select(x => x.OptionalModifiers).ToArray());
+                    var til = terminator.GetILGenerator();
+                    for (var i = 0; i < parameters.Length; i++)
+                    {
+                        til.Emit(OpCodes.Ldarg, i + 1);
+                    }
+                    
+                    BaseGenerator.EmitEntryPoint(til, ctx.Slot, ctx.EntryPoint);
+                    BaseGenerator.EmitNativeCall(til, ctx.Convention, ctx.OriginalMethod, ret.Type,
                         parameters.Select(x => x.Type).ToArray());
+                    til.Emit(OpCodes.Ret);
+                    terminator.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes)512);
+                    il.Emit(OpCodes.Call, terminator);
+                    il.Emit(OpCodes.Ret);
                 }
                 else
                 {
                     var call = nextStage.Marshal(new MethodMarshalContext(wip, ctx.Slot, typeBuilder.DefineMethod(
                             GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
                             MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
-                            wip.CallingConvention, ret.Type, parameters.Select(x => x.Type).ToArray()), ret, parameters,
+                            wip.CallingConvention, ret.Type, ret.RequiredModifiers, ret.OptionalModifiers,
+                            parameters.Select(x => x.Type).ToArray(),
+                            parameters.Select(x => x.RequiredModifiers).ToArray(),
+                            parameters.Select(x => x.OptionalModifiers).ToArray()), ret, parameters,
                         EmitCall));
+                    call.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes)512);
                     il.Emit(OpCodes.Call, call);
                 }
             }
         }
 
         private static string GetName(IMarshaller marshaller, string ogName, int iteration) =>
-            $"{ogName}_{marshaller.GetType().Name}_{iteration}";
+            $"{ogName}_{marshaller?.GetType().Name ?? "Terminator"}_{iteration}";
 
         private static IMarshaller GetNextStage(in ParameterMarshalContext ret, ParameterMarshalContext[] parameters,
             int current, IReadOnlyList<IMarshaller> stages,

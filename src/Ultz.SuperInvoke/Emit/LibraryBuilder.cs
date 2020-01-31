@@ -13,16 +13,29 @@ namespace Ultz.SuperInvoke.Emit
         private AssemblyBuilder _asm;
         private Random _random = new Random();
         private ModuleBuilder _mod;
+        
+        public string Name { get; set; }
+
+        public LibraryBuilder()
+        {
+            Console.WriteLine("yes");
+        }
 
         public void Add(in BuilderOptions opts)
         {
             var bytes = new byte[4];
             _random.NextBytes(bytes);
-            var name = "Ultz.Private.SIG." + opts.Type.Assembly.GetName().Name + ".X" +
+            Name ??= "Ultz.Private.SIG." + opts.Type.Assembly.GetName().Name + ".X" +
                        BitConverter.ToString(bytes).Replace("-", "");
             _asm ??= AssemblyBuilder.DefineDynamicAssembly(
-                new AssemblyName(name), AssemblyBuilderAccess.Run);
-            _mod ??= _asm.DefineDynamicModule(name + ".dll");
+                new AssemblyName(Name),
+#if NET461
+                AssemblyBuilderAccess.RunAndSave);
+                _mod ??= _asm.DefineDynamicModule(Name + ".dll", Name + ".dll");
+#else
+                AssemblyBuilderAccess.Run);
+                _mod ??= _asm.DefineDynamicModule(Name + ".dll");
+#endif
             
             _random.NextBytes(bytes);
             var wipType =

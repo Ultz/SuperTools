@@ -84,7 +84,9 @@ namespace Ultz.SuperInvoke.InteropServices
             : throw new InvalidOperationException("Invalid unmanaged type.");
 
         public bool CanMarshal(in ParameterMarshalContext returnType, ParameterMarshalContext[] parameters) =>
-            returnType.Type == typeof(string) && parameters.Any(x => x.Type == typeof(string));
+            returnType.Type == typeof(string) || parameters.Any(x => x.Type == typeof(string)) ||
+            returnType.Type == typeof(string).MakeByRefType() ||
+            parameters.Any(x => x.Type == typeof(string).MakeByRefType());
         public MethodBuilder Marshal(in MethodMarshalContext ctx)
         {
             var il = ctx.Method.GetILGenerator();

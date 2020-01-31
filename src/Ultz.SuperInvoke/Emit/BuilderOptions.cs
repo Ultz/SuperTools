@@ -1,4 +1,5 @@
 ﻿using System;
+using Ultz.SuperInvoke.InteropServices;
 using Ultz.SuperInvoke.Loader;
 
 namespace Ultz.SuperInvoke.Emit
@@ -15,7 +16,7 @@ namespace Ultz.SuperInvoke.Emit
             {
                 Type = type,
                 UseLazyBinding = true,
-                Generator = new Generator()
+                Generator = new Marshaller()
             };
         }
     }

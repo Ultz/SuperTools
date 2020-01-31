@@ -1,15 +1,10 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using TestNs;
 using Ultz.SuperInvoke;
 using Ultz.SuperInvoke.AOT;
 using Ultz.SuperInvoke.Emit;
-using Ultz.SuperInvoke.InteropServices;
 
 namespace TestApp
 {
@@ -31,10 +26,9 @@ namespace TestApp
             {
                 var libBuilder = new LibraryBuilder();
                 var opts = BuilderOptions.GetDefault(typeof(TestClass2));
-                opts.Generator = new Marshaller();
                 libBuilder.Add(opts);
                 var bytes = libBuilder.BuildBytes();
-                File.WriteAllBytes("a.dll", bytes);
+                File.WriteAllBytes("c.dll", bytes);
             }
 
             var lib = LibraryActivator.CreateInstance<TestClass2>("user32");
