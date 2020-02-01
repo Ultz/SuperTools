@@ -5,15 +5,24 @@ using System.Reflection.Emit;
 
 namespace Ultz.SuperInvoke.InteropServices
 {
-    public class PinnableReferenceMarshaller : IMarshaller
+    public class SpanParameterMarshaller : IMarshaller
     {
         public bool CanMarshal(in ParameterMarshalContext returnType, ParameterMarshalContext[] parameters) =>
             parameters.Any(x => TryGetPinnableReferenceMethod(x.Type, out _));
 
-        private bool TryGetPinnableReferenceMethod(Type type, out MethodInfo method) =>
-            !((method = type.GetMethod("GetPinnableReference", BindingFlags.Public | BindingFlags.Instance, null,
-                new Type[0],
-                null)) is null) && (!method?.ReturnType.IsUnmanaged() ?? false);
+        private bool TryGetPinnableReferenceMethod(Type type, out MethodInfo method)
+        {
+            if (type.IsGenericType)
+            {
+                var genericTypeDef = type.GetGenericTypeDefinition();
+                method = type.GetMethod(nameof(Span<byte>.GetPinnableReference),
+                    BindingFlags.Public | BindingFlags.Instance);
+                return genericTypeDef == typeof(Span<>) || genericTypeDef == typeof(ReadOnlySpan<>);
+            }
+
+            method = null;
+            return false;
+        }
 
         public MethodBuilder Marshal(in MethodMarshalContext ctx)
         {
@@ -24,9 +33,9 @@ namespace Ultz.SuperInvoke.InteropServices
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];
-                il.Emit(OpCodes.Ldarg, i + 1);
                 if (TryGetPinnableReferenceMethod(param.Type, out var getPinnableReference))
                 {
+                    il.Emit(OpCodes.Ldarga, i + 1);
                     il.Emit(OpCodes.Call, getPinnableReference);
                     il.Emit(OpCodes.Dup);
                     il.Emit(OpCodes.Stloc, il.DeclareLocal(getPinnableReference.ReturnType, true));
@@ -35,6 +44,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 }
                 else
                 {
+                    il.Emit(OpCodes.Ldarg, i + 1);
                     pTypes[i] = param.Type;
                 }
             }

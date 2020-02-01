@@ -20,7 +20,7 @@ namespace Ultz.SuperInvoke.InteropServices
             new RefMarshaller(),
             new BoolMarshaller(),
             new MergeMarshaller(),
-            new PinnableReferenceMarshaller(),
+            new SpanParameterMarshaller(),
         };
 
         public IMarshaller[] Stages { get; set; } = DefaultStages;

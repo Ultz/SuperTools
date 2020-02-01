@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using Ultz.SuperInvoke.Emit;
 using NetMarshal = System.Runtime.InteropServices.Marshal;
 
 namespace Ultz.SuperInvoke.InteropServices
@@ -16,15 +17,18 @@ namespace Ultz.SuperInvoke.InteropServices
             var il = ctx.Method.GetILGenerator();
             var pTypes = new List<Type>();
             var pAttrs = new List<CustomAttributeBuilder[]>();
+            var args = new List<(OpCode, short)>();
 
-            il.Emit(OpCodes.Ldarg_0);
+            //il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];
                 var attr = param.GetCustomAttribute<MergeNextAttribute>();
                 if (attr is null)
                 {
-                    il.Emit(OpCodes.Ldarg, i + 1);
+                    // eval stack must be empty for localloc, we'll have a doover later
+                    //il.Emit(OpCodes.Ldarg, i + 1);
+                    args.Add((OpCodes.Ldarg, (short)(i + 1)));
                     pTypes.Add(param.Type);
                     pAttrs.Add(param.OriginalAttributes.Select(MarshalUtils.CloneAttribute).ToArray());
                     continue;
@@ -54,7 +58,7 @@ namespace Ultz.SuperInvoke.InteropServices
                         il.Emit(OpCodes.Add);
                     }
 
-                    il.Emit(OpCodes.Ldarg, i + j);
+                    il.Emit(OpCodes.Ldarg, i + j + 1);
 
                     if (param.Type == typeof(int))
                     {
@@ -121,9 +125,12 @@ namespace Ultz.SuperInvoke.InteropServices
 
                 pTypes.Add(param.Type.MakePointerType());
                 pAttrs.Add(new CustomAttributeBuilder[0]);
+                args.Add((OpCodes.Ldloc, (short)local.LocalIndex));
                 i += attr.Count;
             }
 
+            il.Emit(OpCodes.Ldarg_0);
+            args.ForEach(x => il.Emit(x.Item1, x.Item2));
             ctx.EmitNativeCall(ctx.ReturnParameter.Type, pTypes.ToArray(), ctx.CloneReturnAttributes(),
                 pAttrs.ToArray(), il);
             il.Emit(OpCodes.Ret);

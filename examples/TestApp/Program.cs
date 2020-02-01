@@ -44,9 +44,19 @@ namespace TestApp
 
             lib.MessageBox(default, "Test 2", "Hello from SuperInvoke!", 0);
 
-            lib.MessageBox(default, "Test 3", 'H', 'i', '\0', 0);
+            var x = stackalloc char[3];
+            x[0] = 'H';
+            x[1] = 'i';
+            x[2] = '\0';
+            
+            lib.MessageBox(default, "Test 3", x, 0);
 
-            lib.MessageBox(default, "Test 4", new Span<char>((char*) b, 23), 0);
+            lib.MessageBox(default, "Test 4", 'H', 'i', '\0', 0);
+
+            lib.MessageBox(default, "Test 5", new Span<char>((char*) b, 23), 0);
+
+            lib.MessageBox(default, "Test 6", "Hello from SuperInvoke!", true);
+            lib.MessageBox(default, "Test 7", "Hello from SuperInvoke!", false);
         }
     }
 }

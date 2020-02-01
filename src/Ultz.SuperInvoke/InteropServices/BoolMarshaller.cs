@@ -23,6 +23,7 @@ namespace Ultz.SuperInvoke.InteropServices
             il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < op.Length; i++)
             {
+                il.Emit(OpCodes.Ldarg, i + 1);
                 var p = op[i];
                 if (p.Type == typeof(bool))
                 {
@@ -44,7 +45,6 @@ namespace Ultz.SuperInvoke.InteropServices
                 else
                 {
                     pTypes[i] = p.Type;
-                    il.Emit(OpCodes.Ldarg, i + 1);
                 }
             }
 

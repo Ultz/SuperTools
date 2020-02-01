@@ -42,6 +42,14 @@ namespace Ultz.SuperInvoke.Native
             _lib.Dispose();
         }
 
+        public void PurgeEntryPoints()
+        {
+            for (var i = 0; i < _entryPoints.Length; i++)
+            {
+                _entryPoints[i] = IntPtr.Zero;
+            }
+        }
+
         protected IntPtr Load(int slot, string entryPoint)
         {
             var ptr = _entryPoints[slot];
