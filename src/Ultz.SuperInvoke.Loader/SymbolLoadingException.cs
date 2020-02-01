@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Silk.NET.Core.Native
+namespace Ultz.SuperInvoke.Loader
 {
     public class SymbolLoadingException : Exception
     {
