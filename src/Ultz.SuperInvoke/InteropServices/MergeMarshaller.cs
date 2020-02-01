@@ -35,9 +35,10 @@ namespace Ultz.SuperInvoke.InteropServices
                     throw new InvalidOperationException("Can only merge unmanaged parameters.");
                 }
 
-                var elementSize = NetMarshal.SizeOf(param.Type);
-                il.Emit(OpCodes.Ldc_I4, (attr.Count + 1) * elementSize);
+                il.Emit(OpCodes.Ldc_I4, attr.Count + 1);
                 il.Emit(OpCodes.Conv_U);
+                il.Emit(OpCodes.Sizeof, param.Type);
+                il.Emit(OpCodes.Mul_Ovf_Un);
                 il.Emit(OpCodes.Localloc);
                 var local = il.DeclareLocal(param.Type.MakePointerType());
                 il.Emit(OpCodes.Stloc, local);
@@ -46,12 +47,14 @@ namespace Ultz.SuperInvoke.InteropServices
                     il.Emit(OpCodes.Ldloc, local);
                     if (j != 0)
                     {
-                        il.Emit(OpCodes.Ldc_I4, j * elementSize);
+                        il.Emit(OpCodes.Ldc_I4, j);
+                        il.Emit(OpCodes.Conv_I);
+                        il.Emit(OpCodes.Sizeof, param.Type);
+                        il.Emit(OpCodes.Mul);
                         il.Emit(OpCodes.Add);
                     }
 
-                    il.Emit(OpCodes.Ldarg, i++ + 1);
-                    il.Emit(OpCodes.Stobj);
+                    il.Emit(OpCodes.Ldarg, i + j);
 
                     if (param.Type == typeof(int))
                     {
@@ -89,25 +92,25 @@ namespace Ultz.SuperInvoke.InteropServices
                     else if (param.Type == typeof(ushort))
                     {
                         il.Emit(OpCodes.Conv_I2);
-                        il.Emit(OpCodes.Stind_I1);
+                        il.Emit(OpCodes.Stind_I2);
                     }
                     else if (param.Type == typeof(ulong))
                     {
                         il.Emit(OpCodes.Conv_I8);
-                        il.Emit(OpCodes.Stind_I1);
+                        il.Emit(OpCodes.Stind_I8);
+                    }
+                    else if (param.Type == typeof(char))
+                    {
+                        il.Emit(OpCodes.Stind_I2);
                     }
                     else if (param.Type == typeof(UIntPtr))
                     {
                         il.Emit(OpCodes.Conv_I);
-                        il.Emit(OpCodes.Stind_I1);
+                        il.Emit(OpCodes.Stind_I);
                     }
-                    else if (param.Type.IsByRef)
+                    else if (param.Type.IsClass || param.Type.IsValueType)
                     {
-                        il.Emit(OpCodes.Stind_Ref);
-                    }
-                    else if (param.Type.IsClass || param.Type.IsInterface || param.Type.IsValueType)
-                    {
-                        il.Emit(OpCodes.Stobj);
+                        il.Emit(OpCodes.Stobj, param.Type);
                     }
                     else
                     {
@@ -118,6 +121,7 @@ namespace Ultz.SuperInvoke.InteropServices
 
                 pTypes.Add(param.Type.MakePointerType());
                 pAttrs.Add(new CustomAttributeBuilder[0]);
+                i += attr.Count;
             }
 
             ctx.EmitNativeCall(ctx.ReturnParameter.Type, pTypes.ToArray(), ctx.CloneReturnAttributes(),
