@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-
+using Silk.NET.Core.Native;
 #if NETCOREAPP3_0
 using System.Reflection;
 using NativeLibrary3 = System.Runtime.InteropServices.NativeLibrary;
@@ -110,7 +110,13 @@ namespace Ultz.SuperInvoke.Loader
             if (string.IsNullOrEmpty(functionName))
                 throw new ArgumentException("Parameter must not be null or empty.", nameof(functionName));
 
-            return CoreLoadFunctionPointer(handle, functionName);
+            var ret = CoreLoadFunctionPointer(handle, functionName);
+            if (ret == IntPtr.Zero)
+            {
+                throw new SymbolLoadingException();
+            }
+
+            return ret;
         }
 
         /// <summary>
