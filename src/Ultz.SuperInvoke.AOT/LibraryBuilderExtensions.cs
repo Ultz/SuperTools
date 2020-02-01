@@ -18,5 +18,9 @@ namespace Ultz.SuperInvoke.AOT
             return bytes;
         }
 #endif
+#if NETSTANDARD
+        public static byte[] BuildBytes(this LibraryBuilder builder) =>
+            new Lokad.ILPack.AssemblyGenerator().GenerateAssemblyBytes(builder.Build());
+#endif
     }
 }

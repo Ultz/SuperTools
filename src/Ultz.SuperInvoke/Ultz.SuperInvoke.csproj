@@ -8,9 +8,7 @@
 
     <ItemGroup>
       <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-      <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.7.0" />
-      <PackageReference Include="system.reflection.Metadata" Version="1.7.0" />
-      <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+      <PackageReference Include="System.Memory" Version="4.5.3" />
     </ItemGroup>
 
     <ItemGroup>
