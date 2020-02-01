@@ -11,6 +11,7 @@ namespace TestApp
     class Program
     {
         private const bool AotTest = true;
+
         static unsafe void Main(string[] args)
         {
             Span<byte> s;
@@ -27,21 +28,25 @@ namespace TestApp
                 var libBuilder = new LibraryBuilder();
                 var opts = BuilderOptions.GetDefault(typeof(TestClass2));
                 libBuilder.Add(opts);
+#if NET47
                 var bytes = libBuilder.BuildBytes();
                 File.WriteAllBytes("c.dll", bytes);
+#else
+                libBuilder.Build();
+#endif
             }
 
             var lib = LibraryActivator.CreateInstance<TestClass2>("user32");
-            
+
             var a = Marshal.StringToHGlobalAnsi("Test 1");
             var b = Marshal.StringToHGlobalAnsi("Hello from SuperInvoke!");
             lib.MessageBox(default, (char*) a, (char*) b, 0);
-            
+
             lib.MessageBox(default, "Test 2", "Hello from SuperInvoke!", 0);
-            
+
             lib.MessageBox(default, "Test 3", 'H', 'i', '\0', 0);
-            
-            lib.MessageBox(default, "Test 4", new Span<char>((char*)b, 23), 0);
+
+            lib.MessageBox(default, "Test 4", new Span<char>((char*) b, 23), 0);
         }
     }
 }
