@@ -18,7 +18,6 @@ namespace Ultz.SuperInvoke.Emit
 
         public LibraryBuilder()
         {
-            Console.WriteLine("yes");
         }
 
         public void Add(in BuilderOptions opts)
@@ -52,7 +51,7 @@ namespace Ultz.SuperInvoke.Emit
         {
             var parentAttr = src.GetCustomAttribute<NativeApiAttribute>();
             var slotEps = new List<string>();
-            foreach (var method in src.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
+            foreach (var method in src.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy))
             {
                 var attr = method.GetCustomAttribute<NativeApiAttribute>();
                 
