@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using Ultz.SuperInvoke.InteropServices;
 using Ultz.SuperInvoke.Loader;
 
 namespace Ultz.SuperInvoke
@@ -13,8 +15,18 @@ namespace Ultz.SuperInvoke
             }, null);
 
         internal static MethodInfo NewContextMethod = typeof(NativeApiContainer).GetMethod(nameof(CreateContext),
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, null,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
             new[] {typeof(NativeApiContext).MakeByRefType(), typeof(int?)}, null);
+
+        internal static MethodInfo Persist { get; } =
+            typeof(NativeApiContainer).GetMethod(nameof(Pin),
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+                new[] {typeof(object), typeof(int)}, null);
+
+        internal static MethodInfo UntilNextCall { get; } =
+            typeof(NativeApiContainer).GetMethod(nameof(PinUntilNextCall),
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+                new[] {typeof(object), typeof(int)}, null);
 
         private readonly IntPtr[] _entryPoints;
         private readonly UnmanagedLibrary _lib;
@@ -31,6 +43,11 @@ namespace Ultz.SuperInvoke
 
         protected static NativeApiContext CreateContext(ref NativeApiContext ctx, int? slotCount)
             => new NativeApiContext(ctx.Library, ctx.Strategy, slotCount);
+
+        public GcUtility GcUtility { get; } = new GcUtility();
+        protected void Pin(object o, int slot = -1) => GcUtility.Pin(o, slot);
+        protected void PinUntilNextCall(object o, int slot = -1) => GcUtility.PinUntilNextCall(o, slot);
+        protected void Unpin(object o, int slot = -1) => GcUtility.Unpin(o, slot);
 
         private void LoadProperties()
         {

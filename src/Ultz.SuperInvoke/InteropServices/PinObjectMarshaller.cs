@@ -6,13 +6,6 @@ namespace Ultz.SuperInvoke.InteropServices
 {
     public class PinObjectMarshaller : IMarshaller
     {
-        private static MethodInfo Persist { get; } =
-            typeof(MarshalUtils).GetMethod(nameof(MarshalUtils.Pin), BindingFlags.Public | BindingFlags.Static, null,
-                new[] {typeof(object), typeof(int)}, null);
-
-        private static MethodInfo UntilNextCall { get; } =
-            typeof(MarshalUtils).GetMethod(nameof(MarshalUtils.PinUntilNextCall), BindingFlags.Public | BindingFlags.Static, null,
-                new[] {typeof(object), typeof(int)}, null);
         public bool CanMarshal(in ParameterMarshalContext ret, ParameterMarshalContext[] parameters) =>
             parameters.Any(x => !(x.GetCustomAttribute<PinObjectAttribute>() is null));
 
@@ -30,13 +23,14 @@ namespace Ultz.SuperInvoke.InteropServices
                     continue;
                 }
                 
-                il.Emit(OpCodes.Dup);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg, i + 1);
                 il.Emit(OpCodes.Ldc_I4, ctx.Slot);
                 il.Emit(OpCodes.Call, attr.Mode switch
                 {
-                    PinMode.Persist => Persist,
-                    PinMode.UntilNextCall => UntilNextCall,
-                    _ => UntilNextCall
+                    PinMode.Persist => NativeApiContainer.Persist,
+                    PinMode.UntilNextCall => NativeApiContainer.UntilNextCall,
+                    _ => NativeApiContainer.UntilNextCall
                 });
             }
 
