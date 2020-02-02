@@ -3,7 +3,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Ultz.SuperInvoke.Emit;
 using Ultz.SuperInvoke.Loader;
-using Ultz.SuperInvoke.Native;
 
  namespace Ultz.SuperInvoke
 {

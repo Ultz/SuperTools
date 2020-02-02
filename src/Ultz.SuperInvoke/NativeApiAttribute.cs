@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Ultz.SuperInvoke.Native
+namespace Ultz.SuperInvoke
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property)]
     public class NativeApiAttribute : Attribute

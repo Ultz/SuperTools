@@ -2,7 +2,7 @@
 using System.Reflection;
 using Ultz.SuperInvoke.Loader;
 
-namespace Ultz.SuperInvoke.Native
+namespace Ultz.SuperInvoke
 {
     public abstract class NativeApiContainer : IDisposable
     {

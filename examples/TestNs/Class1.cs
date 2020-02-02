@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using Ultz.SuperInvoke;
 using Ultz.SuperInvoke.InteropServices;
 using Ultz.SuperInvoke.Loader;
-using Ultz.SuperInvoke.Native;
 
 namespace TestNs
 {

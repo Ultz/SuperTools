@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Ultz.SuperInvoke.Loader;
-using Ultz.SuperInvoke.Native;
 
 namespace Ultz.SuperInvoke.Emit
 {
