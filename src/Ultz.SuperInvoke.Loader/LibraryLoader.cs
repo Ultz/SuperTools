@@ -112,7 +112,7 @@ namespace Ultz.SuperInvoke.Loader
             var ret = CoreLoadFunctionPointer(handle, functionName);
             if (ret == IntPtr.Zero)
             {
-                throw new SymbolLoadingException();
+                throw new SymbolLoadingException(functionName);
             }
 
             return ret;
