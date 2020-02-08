@@ -2,14 +2,15 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+        <Description>SuperTools is an advanced set of libraries to aid low-level development in C#. This package provides extension methods for saving SuperInvoke implementations to disk.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj" />
+        <ProjectReference Include="..\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj"/>
     </ItemGroup>
-    
+
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-      <PackageReference Include="Lokad.ILPack" Version="0.1.3" />
+        <PackageReference Include="Lokad.ILPack" Version="0.1.3"/>
     </ItemGroup>
 
 </Project>

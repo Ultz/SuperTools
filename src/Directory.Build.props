@@ -3,11 +3,13 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <LangVersion>8.0</LangVersion>
         <PackageReleaseNotes>
+            - First release containing SuperInvoke &amp; associated dependencies only.
         </PackageReleaseNotes>
         <!--<GenerateDocumentationFile>true</GenerateDocumentationFile>-->
         <PackageOutputPath>$(MSBuildThisFileDirectory)/../output_packages</PackageOutputPath>
         <RepositoryUrl>https://github.com/Ultz/SuperTools</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>
-        <Version>1.0.0-preview$(VersionSuffix)</Version>
+        <Version>1.0.0$(VersionSuffix)</Version>
+        <Description>SuperTools is an advanced set of libraries to aid low-level development in C#.</Description>
     </PropertyGroup>
 </Project>
