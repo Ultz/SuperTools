@@ -89,11 +89,10 @@ namespace Ultz.SuperInvoke.Loader
             if (Path.IsPathRooted(name)) return CoreLoadNativeLibrary(name);
 
             foreach (var loadTarget in pathResolver.EnumeratePossibleLibraryLoadTargets(name))
-                if (!Path.IsPathRooted(loadTarget) || File.Exists(loadTarget))
-                {
-                    var ret = CoreLoadNativeLibrary(loadTarget);
-                    if (ret != IntPtr.Zero) return ret;
-                }
+            {
+                var ret = CoreLoadNativeLibrary(loadTarget);
+                if (ret != IntPtr.Zero) return ret;
+            }
 
             return IntPtr.Zero;
         }
