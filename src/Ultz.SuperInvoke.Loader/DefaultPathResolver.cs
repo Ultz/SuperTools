@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyModel;
 using RuntimeEnvironment = Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment;
@@ -36,6 +37,17 @@ namespace Ultz.SuperInvoke.Loader
             out string depsResolvedPath)
         {
             var defaultContext = DependencyContext.Default;
+            var entAsm = Assembly.GetEntryAssembly();
+            if (defaultContext is null && !(entAsm is null))
+            {
+                var json = new DependencyContextJsonReader();
+                defaultContext ??= json.Read(File.OpenRead(Path.Combine(Path.GetDirectoryName(entAsm.Location),
+                    entAsm.GetName().Name + ".deps.json")));
+                defaultContext ??=
+                    json.Read(File.OpenRead(
+                        Path.Combine(AppContext.BaseDirectory, entAsm.GetName().Name + ".deps.json")));
+            }
+
             if (defaultContext == null)
             {
                 appLocalNativePath = null;
