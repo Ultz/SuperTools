@@ -9,7 +9,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\Ultz.SuperInvoke.AOT\Ultz.SuperInvoke.AOT.csproj" />
       <ProjectReference Include="..\..\src\Ultz.SuperInvoke\Ultz.SuperInvoke.csproj" />
-      <ProjectReference Include="..\..\src\Ultz.SuperPack\Ultz.SuperPack.csproj" />
       <ProjectReference Include="..\TestNs\TestNs.csproj" />
     </ItemGroup>
 

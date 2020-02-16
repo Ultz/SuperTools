@@ -91,8 +91,15 @@ namespace Ultz.SuperInvoke.Loader
 
             foreach (var loadTarget in pathResolver.EnumeratePossibleLibraryLoadTargets(name))
             {
-                var ret = CoreLoadNativeLibrary(loadTarget);
-                if (ret != IntPtr.Zero) return ret;
+                try
+                {
+                    var ret = CoreLoadNativeLibrary(loadTarget);
+                    if (ret != IntPtr.Zero) return ret;
+                }
+                catch (FileNotFoundException)
+                {
+                    // do nothing
+                }
             }
 
             return IntPtr.Zero;
