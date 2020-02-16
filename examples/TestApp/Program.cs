@@ -57,6 +57,7 @@ namespace TestApp
 
             lib.MessageBox(default, "Test 6", "Hello from SuperInvoke!", true);
             lib.MessageBox(default, "Test 7", "Hello from SuperInvoke!", false);
+            lib.MessageBox<char>(default, "Test 8", new Span<char>((char*) b, 23), 0);
         }
     }
 }

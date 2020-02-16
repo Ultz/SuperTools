@@ -62,6 +62,7 @@ namespace Ultz.SuperInvoke.InteropServices
                 ctx.OriginalMethod.GetParameters().Select(x => x.ParameterType).ToArray(),
                 ctx.OriginalMethod.GetParameters().Select(x => x.GetRequiredCustomModifiers()).ToArray(),
                 ctx.OriginalMethod.GetParameters().Select(x => x.GetOptionalCustomModifiers()).ToArray());
+            MarshalUtils.CopyGenericTypes(ctx.OriginalMethod, entry);
             entry.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes) 512);
             ctx.DestinationMethod.SetImplementationFlags(MethodImplAttributes.AggressiveInlining |
                                                          (MethodImplAttributes) 512);
@@ -112,13 +113,15 @@ namespace Ultz.SuperInvoke.InteropServices
                 }
                 else
                 {
-                    var call = nextStage.Marshal(new MethodMarshalContext(wip, ctx.Slot, typeBuilder.DefineMethod(
-                            GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
-                            MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
-                            wip.CallingConvention, ret.Type, ret.RequiredModifiers, ret.OptionalModifiers,
-                            parameters.Select(x => x.Type).ToArray(),
-                            parameters.Select(x => x.RequiredModifiers).ToArray(),
-                            parameters.Select(x => x.OptionalModifiers).ToArray()), ret, parameters,
+                    var call = typeBuilder.DefineMethod(
+                        GetName(nextStage, ctx.OriginalMethod.Name, iteration++),
+                        MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig,
+                        wip.CallingConvention, ret.Type, ret.RequiredModifiers, ret.OptionalModifiers,
+                        parameters.Select(x => x.Type).ToArray(),
+                        parameters.Select(x => x.RequiredModifiers).ToArray(),
+                        parameters.Select(x => x.OptionalModifiers).ToArray());
+                    MarshalUtils.CopyGenericTypes(ctx.OriginalMethod, call);
+                    call = nextStage.Marshal(new MethodMarshalContext(wip, ctx.Slot, call, ret, parameters,
                         EmitCall));
                     call.SetImplementationFlags(MethodImplAttributes.AggressiveInlining | (MethodImplAttributes)512);
                     il.Emit(OpCodes.Call, call);

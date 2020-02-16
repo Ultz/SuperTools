@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Ultz.SuperInvoke.InteropServices;
 using Ultz.SuperInvoke.Loader;
 
 namespace Ultz.SuperInvoke.Emit
@@ -66,6 +67,7 @@ namespace Ultz.SuperInvoke.Emit
                     method.GetParameters().Select(x => x.ParameterType).ToArray(),
                     method.GetParameters().Select(x => x.GetRequiredCustomModifiers()).ToArray(),
                     method.GetParameters().Select(x => x.GetOptionalCustomModifiers()).ToArray());
+                MarshalUtils.CopyGenericTypes(method, wip);
                 var ctx = new MethodGenerationContext(method, wip,
                     NativeApiAttribute.GetEntryPoint(attr, parentAttr, method.Name), slotEps.Count,
                     NativeApiAttribute.GetCallingConvention(attr, parentAttr));

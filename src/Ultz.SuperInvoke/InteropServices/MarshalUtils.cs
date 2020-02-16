@@ -30,6 +30,38 @@ namespace Ultz.SuperInvoke.InteropServices
             }
         }
 
+        public static void CopyGenericTypes(MethodInfo src, MethodBuilder builder)
+        {
+            var genericTypes = src.GetGenericArguments();
+            if (genericTypes.Length == 0)
+            {
+                return;
+            }
+            var genericBuilders = builder.DefineGenericParameters(genericTypes.Select(x => x.Name).ToArray());
+            for (var i = 0; i < genericTypes.Length; i++)
+            {
+                genericBuilders[i].SetGenericParameterAttributes(genericTypes[i].GenericParameterAttributes);
+                foreach (var customAttributeData in genericTypes[i].GetCustomAttributesData())
+                {
+                    genericBuilders[i].SetCustomAttribute(new CustomAttributeBuilder(customAttributeData.Constructor,
+                        customAttributeData.ConstructorArguments.Select(x => x.Value).ToArray(),
+                        customAttributeData.NamedArguments?.Where(x => !x.IsField)
+                            .Select(x => (PropertyInfo) x.MemberInfo).ToArray(),
+                        customAttributeData.NamedArguments?.Where(x => !x.IsField).Select(x => x.TypedValue.Value)
+                            .ToArray(),
+                        customAttributeData.NamedArguments?.Where(x => x.IsField).Select(x => (FieldInfo) x.MemberInfo)
+                            .ToArray(),
+                        customAttributeData.NamedArguments?.Where(x => !x.IsField).Select(x => x.TypedValue.Value)
+                            .ToArray()));
+                }
+
+                genericBuilders[i].SetInterfaceConstraints(genericTypes[i].GetGenericParameterConstraints()
+                    .Where(x => x.IsInterface).ToArray());
+                genericBuilders[i].SetBaseTypeConstraint(genericTypes[i].GetGenericParameterConstraints()
+                    .FirstOrDefault(x => !x.IsInterface));
+            }
+        }
+
         public static Attribute CreateAttribute(this CustomAttributeData data)
         {
             var arguments = from arg in data.ConstructorArguments

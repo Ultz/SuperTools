@@ -31,9 +31,9 @@ namespace TestNs
         public abstract int MessageBox(IntPtr hwnd, string text, [MergeNext(2)] char h, char i, char nullChar, uint buttons);
         
         [NativeApi(EntryPoint = "MessageBoxA")]
-        public abstract unsafe int MessageBox(IntPtr hwnd, string text, char* caption, uint buttons);
+        public abstract unsafe int MessageBox(IntPtr hwnd, [PinObject] string text, char* caption, uint buttons);
         
         [NativeApi(EntryPoint = "MessageBoxA")]
-        public abstract int MessageBox(IntPtr hwnd, [PinObject] Span<char> text, Span<char> caption, uint buttons);
+        public abstract int MessageBox<T>(IntPtr hwnd, [PinObject] string text, Span<T> caption, uint buttons) where T:unmanaged;
     }
 }
