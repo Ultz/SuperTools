@@ -5,6 +5,7 @@ using System.Reflection;
 using NativeLibrary3 = System.Runtime.InteropServices.NativeLibrary;
 #else
 using System.Runtime.InteropServices;
+
 #endif
 
 namespace Ultz.SuperInvoke.Loader
@@ -89,11 +90,10 @@ namespace Ultz.SuperInvoke.Loader
             if (Path.IsPathRooted(name)) return CoreLoadNativeLibrary(name);
 
             foreach (var loadTarget in pathResolver.EnumeratePossibleLibraryLoadTargets(name))
-                if (!Path.IsPathRooted(loadTarget) || File.Exists(loadTarget))
-                {
-                    var ret = CoreLoadNativeLibrary(loadTarget);
-                    if (ret != IntPtr.Zero) return ret;
-                }
+            {
+                var ret = CoreLoadNativeLibrary(loadTarget);
+                if (ret != IntPtr.Zero) return ret;
+            }
 
             return IntPtr.Zero;
         }

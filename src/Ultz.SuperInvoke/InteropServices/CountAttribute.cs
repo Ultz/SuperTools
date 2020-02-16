@@ -33,6 +33,8 @@ namespace Ultz.SuperInvoke.InteropServices
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
                 }
             }
+
+            Type = type;
         }
 
         public CountAttribute(object arbitraryCount)
