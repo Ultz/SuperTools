@@ -12,4 +12,8 @@
       <ProjectReference Include="..\TestNs\TestNs.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Lokad.ILPack" Version="0.1.3" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using Lokad.ILPack;
 using TestNs;
 using Ultz.SuperInvoke;
 using Ultz.SuperInvoke.AOT;
@@ -58,6 +60,12 @@ namespace TestApp
             lib.MessageBox(default, "Test 6", "Hello from SuperInvoke!", true);
             lib.MessageBox(default, "Test 7", "Hello from SuperInvoke!", false);
             lib.MessageBox<char>(default, "Test 8", new Span<char>((char*) b, 23), 0);
+
+            var hwnd = lib.CreateWindowExA(0, "A", "B", 0, 100, 100, 100, 100, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
+                null);
+            var str = string.Empty;
+            lib.GetWindowTextA(hwnd, ref str, 1024);
+            lib.MessageBox(default, "Test 9", str, 0);
         }
     }
 }

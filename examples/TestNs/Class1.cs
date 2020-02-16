@@ -35,5 +35,23 @@ namespace TestNs
         
         [NativeApi(EntryPoint = "MessageBoxA")]
         public abstract int MessageBox<T>(IntPtr hwnd, [PinObject] string text, Span<T> caption, uint buttons) where T:unmanaged;
+        
+        public abstract unsafe IntPtr CreateWindowExA(
+            uint     dwExStyle,
+            string    lpClassName,
+            string    lpWindowName,
+            uint     dwStyle,
+            int       X,
+            int       Y,
+            int       nWidth,
+            int       nHeight,
+            IntPtr      hWndParent,
+            IntPtr     hMenu,
+            IntPtr hInstance,
+            void*    lpParam
+        );
+
+        public abstract int GetWindowTextA(IntPtr hwnd, [Count(CountType.ParameterReference, 1)]
+            ref string str, int maxCount);
     }
 }
