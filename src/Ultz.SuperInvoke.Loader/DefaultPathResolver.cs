@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -36,14 +36,16 @@ namespace Ultz.SuperInvoke.Loader
         private bool TryLocateNativeAssetFromDeps(string name, out string appLocalNativePath,
             out string depsResolvedPath)
         {
-            var defaultContext = DependencyContext.Load(Assembly.GetEntryAssembly());
-            if (!(Assembly.GetEntryAssembly() is null))
+            var defaultContext = DependencyContext.Default;
+            var entAsm = Assembly.GetEntryAssembly();
+            if (defaultContext is null && !(entAsm is null))
             {
-                defaultContext ??= new DependencyContextJsonReader().Read(File.OpenRead(
-                    Path.Combine(AppContext.BaseDirectory, Assembly.GetEntryAssembly().GetName().Name + ".deps.json")));
-                defaultContext ??= new DependencyContextJsonReader().Read(File.OpenRead(
-                    Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
-                        Assembly.GetEntryAssembly().GetName().Name + ".deps.json")));
+                var json = new DependencyContextJsonReader();
+                defaultContext ??= json.Read(File.OpenRead(Path.Combine(Path.GetDirectoryName(entAsm.Location),
+                    entAsm.GetName().Name + ".deps.json")));
+                defaultContext ??=
+                    json.Read(File.OpenRead(
+                        Path.Combine(AppContext.BaseDirectory, entAsm.GetName().Name + ".deps.json")));
             }
 
             if (defaultContext == null)
