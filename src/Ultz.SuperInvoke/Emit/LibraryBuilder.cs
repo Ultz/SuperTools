@@ -104,9 +104,11 @@ namespace Ultz.SuperInvoke.Emit
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldloca, loc);
             il.Emit(OpCodes.Call,
-                typeof(NativeApiContainer).GetConstructor(
+                src.GetConstructor(
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-                    new[] {typeof(NativeApiContext).MakeByRefType()}, null));
+                    new[] {typeof(NativeApiContext).MakeByRefType()}, null) ?? throw new InvalidOperationException(
+                    "Source type must have a constructor matching" +
+                    "the NativeApiContainer(NativeApiContext&) constructor."));
 
             if (!lazy)
             {
