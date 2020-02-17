@@ -90,83 +90,77 @@ namespace Ultz.SuperInvoke.InteropServices
             parameters.Any(x => x.Type == typeof(string).MakeByRefType());
         public MethodBuilder Marshal(in MethodMarshalContext ctx)
         {
-            Debug.WriteLine("+++++++");
             var il = ctx.Method.GetILGenerator();
-            var pTypes = new Type[ctx.Parameters.Length];
             var locals = new LocalBuilder[ctx.Parameters.Length];
+            var pTypes = new Type[ctx.Parameters.Length];
             var pAttr = ctx.CloneParameterAttributes();
             var rAttr = ctx.CloneReturnAttributes();
-            
-            il.Emit(OpCodes.Ldarg_0);Debug.WriteLine("ldarg.0");
+            il.Emit(OpCodes.Ldarg_0);
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];
-                if (param.Type == typeof(string) || param.Type == typeof(string).MakeByRefType())
+                var unmanagedType = param.GetUnmanagedType() ?? Default;
+                if (param.Type == typeof(string))
                 {
-                    var unmanagedType = param.GetUnmanagedType() ?? Default;
-                    if (param.Type.IsByRef)
+                    il.Emit(OpCodes.Ldarg, i + 1);
+                    il.Emit(OpCodes.Call, ToPtr(unmanagedType));
+                    il.Emit(OpCodes.Dup);
+                    il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(pTypes[i] = typeof(IntPtr)));
+                    pAttr[i] = new CustomAttributeBuilder[0];
+                }
+                else if (param.Type == typeof(string).MakeByRefType())
+                {
+                    locals[i] = il.DeclareLocal(pTypes[i] = typeof(IntPtr));
+                    if ((uint) (param.ParameterAttributes & ParameterAttributes.Out) > 0U)
                     {
-                        if ((param.ParameterAttributes & ParameterAttributes.Out) != 0)
+                        var count = param.GetCount();
+                        if (count is null || count.Type == CountType.Arbitrary)
                         {
-                            var count = param.GetCount();
-                            if (count is null || count.Type == CountType.Arbitrary)
-                            {
-                                throw new InvalidOperationException(
-                                    "Non-arbitrary count data is required for out strings.");
-                            }
-
-                            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-                            switch (count.Type)
-                            {
-                                case CountType.Constant:
-                                {
-                                    il.Emit(OpCodes.Ldc_I4, count.ConstantCount.Value);Debug.WriteLine($"ldc.i4.{count.ConstantCount.Value}");
-                                    il.Emit(OpCodes.Conv_I);Debug.WriteLine("conv.i");
-                                    break;
-                                }
-                                case CountType.ParameterReference:
-                                {
-                                    il.Emit(OpCodes.Ldarg, i + 1 + count.ParameterOffset.Value);Debug.WriteLine($"ldarg.{i + 1 + count.ParameterOffset.Value}");
-                                    il.Emit(OpCodes.Conv_I);Debug.WriteLine("conv.i");
-                                    break;
-                                }
-                                default:
-                                {
-                                    throw new ArgumentOutOfRangeException();
-                                }
-                            }
-
-                            il.Emit(OpCodes.Call, Alloc(unmanagedType));Debug.WriteLine($"call {Alloc(unmanagedType)}");
-                            il.Emit(OpCodes.Dup);Debug.WriteLine("dup");
-                            il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(typeof(IntPtr)));Debug.WriteLine($"stloc.{locals[i].LocalIndex}");
+                            throw new InvalidOperationException(
+                                "Non-arbitrary count data is required for out strings.");
                         }
-                        else
+
+                        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+                        switch (count.Type)
                         {
-                            il.Emit(OpCodes.Ldarg, i + 1);Debug.WriteLine($"ldarg.{i + 1}");
-                            il.Emit(OpCodes.Ldind_Ref);Debug.WriteLine("ldind.ref");
-                            il.Emit(OpCodes.Call, ToPtr(unmanagedType));Debug.WriteLine($"call {ToPtr(unmanagedType)}");
-                            il.Emit(OpCodes.Dup);Debug.WriteLine("dup");
-                            il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(typeof(IntPtr)));Debug.WriteLine($"stloc.{locals[i].LocalIndex}");
+                            case CountType.Constant:
+                            {
+                                il.Emit(OpCodes.Ldc_I4, count.ConstantCount.Value);
+                                il.Emit(OpCodes.Conv_I);
+                                break;
+                            }
+                            case CountType.ParameterReference:
+                            {
+                                il.Emit(OpCodes.Ldarg, i + 1 + count.ParameterOffset.Value);
+                                il.Emit(OpCodes.Conv_I);
+                                break;
+                            }
+                            default:
+                            {
+                                throw new ArgumentOutOfRangeException();
+                            }
                         }
+                        
+                        il.Emit(OpCodes.Call, Alloc(unmanagedType));
+                        il.Emit(OpCodes.Dup);
+                        il.Emit(OpCodes.Stloc, locals[i]);
                     }
                     else
                     {
-                        il.Emit(OpCodes.Ldarg, i + 1);Debug.WriteLine($"ldarg.{i + 1}");
-                        il.Emit(OpCodes.Call, ToPtr(unmanagedType));Debug.WriteLine($"call {ToPtr(unmanagedType)}");
-                        il.Emit(OpCodes.Dup);Debug.WriteLine("dup");
-                        il.Emit(OpCodes.Stloc, locals[i] = il.DeclareLocal(typeof(IntPtr)));Debug.WriteLine($"stloc.{locals[i].LocalIndex}");
+                        il.Emit(OpCodes.Ldarg, i + 1);
+                        il.Emit(OpCodes.Ldind_Ref);
+                        il.Emit(OpCodes.Call, ToPtr(unmanagedType));
+                        il.Emit(OpCodes.Dup);
+                        il.Emit(OpCodes.Stloc, locals[i]);
                     }
-
-                    pAttr[i] = new CustomAttributeBuilder[0];
-                    pTypes[i] = typeof(IntPtr);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldarg, i + 1);Debug.WriteLine($"ldarg.{i+1}");
+                    il.Emit(OpCodes.Ldarg, i + 1);
                     pTypes[i] = param.Type;
                 }
             }
-
+            
             var mReturn = ctx.ReturnParameter.Type == typeof(string);
             ctx.EmitNativeCall(mReturn ? typeof(IntPtr) : ctx.ReturnParameter.Type, pTypes,
                 mReturn ? new CustomAttributeBuilder[0] : rAttr, pAttr, il);
@@ -174,44 +168,37 @@ namespace Ultz.SuperInvoke.InteropServices
             if (mReturn)
             {
                 var unmanagedType = ctx.ReturnParameter.GetUnmanagedType() ?? Default;
-                il.Emit(OpCodes.Call, FromPtr(unmanagedType));Debug.WriteLine($"call {FromPtr(unmanagedType)}");
+                il.Emit(OpCodes.Call, FromPtr(unmanagedType));
             }
-            
+
             for (var i = 0; i < ctx.Parameters.Length; i++)
             {
                 var param = ctx.Parameters[i];
-                if (param.Type == typeof(string) || param.Type == typeof(string).MakeByRefType())
+                var unmanagedType = param.GetUnmanagedType() ?? Default;
+                if (param.Type == typeof(string))
                 {
-                    var unmanagedType = param.GetUnmanagedType() ?? Default;
-                    if (param.Type.IsByRef)
+                    il.Emit(OpCodes.Ldloc, locals[i]);
+                    il.Emit(OpCodes.Call, FromPtr(unmanagedType));
+                    il.Emit(OpCodes.Starg, i + 1);
+                    il.Emit(OpCodes.Ldloc, locals[i]);
+                    il.Emit(OpCodes.Call, Free(unmanagedType));
+                }
+                else if (param.Type == typeof(string).MakeByRefType())
+                {
+                    if ((param.ParameterAttributes & ParameterAttributes.In) == 0)
                     {
-                        if ((param.ParameterAttributes & ParameterAttributes.In) != 0)
-                        {
-                            il.Emit(OpCodes.Ldloc, i);Debug.WriteLine($"ldloc.{i}");
-                            il.Emit(OpCodes.Call, Free(unmanagedType));Debug.WriteLine($"call {Free(unmanagedType)}");
-                        }
-                        else
-                        {
-                            il.Emit(OpCodes.Ldarg, i + 1);Debug.WriteLine("ldarg.{i + 1}");
-                            il.Emit(OpCodes.Ldloc, locals[i]);Debug.WriteLine($"ldloc.{locals[i].LocalIndex}");
-                            il.Emit(OpCodes.Call, FromPtr(unmanagedType));Debug.WriteLine($"call {FromPtr(unmanagedType)}");
-                            il.Emit(OpCodes.Stind_Ref);Debug.WriteLine("stind.ref");
-                            il.Emit(OpCodes.Ldloc, i);Debug.WriteLine($"ldloc.{i}");
-                            il.Emit(OpCodes.Call, Free(unmanagedType));Debug.WriteLine($"call {Free(unmanagedType)}");
-                        }
+                        il.Emit(OpCodes.Ldarg, i + 1);
+                        il.Emit(OpCodes.Ldloc, locals[i]);
+                        il.Emit(OpCodes.Call, FromPtr(unmanagedType));
+                        il.Emit(OpCodes.Stind_Ref);
                     }
-                    else
-                    {
-                        il.Emit(OpCodes.Ldloc, locals[i]);Debug.WriteLine($"ldloc.{locals[i].LocalIndex}");
-                        il.Emit(OpCodes.Dup);Debug.WriteLine("dup");
-                        il.Emit(OpCodes.Call, FromPtr(unmanagedType));Debug.WriteLine($"call {FromPtr(unmanagedType)}");
-                        il.Emit(OpCodes.Starg, i);Debug.WriteLine($"starg.{i}");
-                        il.Emit(OpCodes.Call, Free(unmanagedType));Debug.WriteLine($"call {Free(unmanagedType)}");
-                    }
+                    
+                    il.Emit(OpCodes.Ldloc, locals[i]);
+                    il.Emit(OpCodes.Call, Free(unmanagedType));
                 }
             }
             
-            il.Emit(OpCodes.Ret);Debug.WriteLine("ret\n----");
+            il.Emit(OpCodes.Ret);
             return ctx.Method;
         }
     }
