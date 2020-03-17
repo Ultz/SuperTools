@@ -43,7 +43,17 @@ using Ultz.SuperInvoke.Loader;
         }
 
         internal static Type GetImplementationInDomain(Type type, AppDomain domain) => domain.GetAssemblies()
-            .SelectMany(x => x.GetTypes())
+            .SelectMany(x =>
+            {
+                try
+                {
+                    return x.GetTypes();
+                }
+                catch
+                {
+                    return Enumerable.Empty<Type>();
+                }
+            })
             .FirstOrDefault(x => type.IsAssignableFrom(x) && x != type);
 
         public static T CreateInstance<T>(UnmanagedLibrary unmanagedLibrary, Strategy strategy = Strategy.Infer)
