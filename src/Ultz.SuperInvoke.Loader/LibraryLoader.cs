@@ -20,7 +20,7 @@ namespace Ultz.SuperInvoke.Loader
         /// </summary>
         /// <param name="name">The name of the library to open.</param>
         /// <returns>The operating system handle for the shared library.</returns>
-        public IntPtr LaodNativeLibrary(string name)
+        public IntPtr LoadNativeLibrary(string name)
         {
             var success = TryLoadNativeLibrary(name, out IntPtr result);
 
@@ -38,8 +38,7 @@ namespace Ultz.SuperInvoke.Loader
         /// <returns>The operating system handle for the shared library.</returns>
         public bool TryLoadNativeLibrary(string name, out IntPtr result)
         {
-            var success  = TryLoadNativeLibrary(new[] { name }, PathResolver.Default, out IntPtr libPtr);
-            result = libPtr;
+            var success  = TryLoadNativeLibrary(new[] { name }, PathResolver.Default, out result);
 
             return success;
         }
