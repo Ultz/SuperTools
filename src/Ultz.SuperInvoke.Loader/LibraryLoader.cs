@@ -22,7 +22,25 @@ namespace Ultz.SuperInvoke.Loader
         /// <returns>The operating system handle for the shared library.</returns>
         public IntPtr LoadNativeLibrary(string name)
         {
-            return LoadNativeLibrary(name, PathResolver.Default);
+            var success = TryLoadNativeLibrary(name, out IntPtr result);
+
+            if (!success)
+                throw new FileNotFoundException("Could not find or load the native library: " + name);
+
+            return result;
+        }
+
+        /// <summary>
+        ///     Loads a native library by name and returns an operating system handle to it.
+        /// </summary>
+        /// <param name="name">The name of the library to open.</param>
+        /// <param name="result">A pointer to the loaded library.</param>
+        /// <returns>The operating system handle for the shared library.</returns>
+        public bool TryLoadNativeLibrary(string name, out IntPtr result)
+        {
+            var success  = TryLoadNativeLibrary(new[] { name }, PathResolver.Default, out result);
+
+            return success;
         }
 
         /// <summary>
@@ -34,7 +52,28 @@ namespace Ultz.SuperInvoke.Loader
         /// <returns>The operating system handle for the shared library.</returns>
         public IntPtr LoadNativeLibrary(string[] names)
         {
-            return LoadNativeLibrary(names, PathResolver.Default);
+            var success = TryLoadNativeLibrary(names, out IntPtr result);
+
+            if (!success)
+                throw new FileNotFoundException($"Could not find or load the native library from any name: [ {string.Join(", ", names)} ]");
+
+            return result;
+        }
+
+        /// <summary>
+        ///     Loads a native library by name and returns an operating system handle to it.
+        /// </summary>
+        /// <param name="names">
+        ///     An ordered list of names. Each name is tried in turn, until the library is successfully loaded.
+        /// </param>
+        /// <param name="result">A pointer to the loaded library.</param>
+        /// <returns>The operating system handle for the shared library.</returns>
+        public bool TryLoadNativeLibrary(string[] names, out IntPtr result)
+        {
+            var success = TryLoadNativeLibrary(names, PathResolver.Default, out IntPtr libPtr);
+            result = libPtr;
+
+            return success;
         }
 
         /// <summary>
@@ -48,12 +87,27 @@ namespace Ultz.SuperInvoke.Loader
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("Parameter must not be null or empty.", nameof(name));
 
-            var ret = LoadWithResolver(name, pathResolver);
+            var success = TryLoadNativeLibrary(name, pathResolver, out IntPtr result);
 
-            if (ret == IntPtr.Zero)
+            if (!success)
                 throw new FileNotFoundException("Could not find or load the native library: " + name);
 
-            return ret;
+            return result;
+        }
+
+        /// <summary>
+        ///     Loads a native library by name and returns an operating system handle to it.
+        /// </summary>
+        /// <param name="name">The name of the library to open.</param>
+        /// <param name="pathResolver">The path resolver to use.</param>
+        /// <param name="result">A pointer to the loaded library.</param>
+        /// <returns>The operating system handle for the shared library.</returns>
+        public bool TryLoadNativeLibrary(string name, PathResolver pathResolver, out IntPtr result)
+        {
+            var success = TryLoadNativeLibrary(new[] { name }, pathResolver, out IntPtr libPtr);
+            result = libPtr;
+
+            return success;
         }
 
         /// <summary>
@@ -69,18 +123,37 @@ namespace Ultz.SuperInvoke.Loader
             if (names == null || names.Length == 0)
                 throw new ArgumentException("Parameter must not be null or empty.", nameof(names));
 
-            var ret = IntPtr.Zero;
+            var success = TryLoadNativeLibrary(names, pathResolver, out IntPtr result);
+
+            if (!success)
+                throw new FileNotFoundException($"Could not find or load the native library from any name: [ {string.Join(", ", names)} ]");
+
+            return result;
+        }
+
+        /// <summary>
+        ///     Loads a native library by name and returns an operating system handle to it.
+        /// </summary>
+        /// <param name="names">
+        ///     An ordered list of names. Each name is tried in turn, until the library is successfully loaded.
+        /// </param>
+        /// <param name="pathResolver">The path resolver to use.</param>
+        /// <param name="result">A pointer to the loaded library.</param>
+        /// <returns>The operating system handle for the shared library.</returns>
+        public bool TryLoadNativeLibrary(string[] names, PathResolver pathResolver, out IntPtr result)
+        {
+            result = IntPtr.Zero;
+
+            if (names == null || names.Length == 0)
+                return false;
+
             foreach (var name in names)
             {
-                ret = LoadWithResolver(name, pathResolver);
-                if (ret != IntPtr.Zero) break;
+                result = LoadWithResolver(name, pathResolver);
+                if (result != IntPtr.Zero) break;
             }
 
-            if (ret == IntPtr.Zero)
-                throw new FileNotFoundException(
-                    $"Could not find or load the native library from any name: [ {string.Join(", ", names)} ]");
-
-            return ret;
+            return result != IntPtr.Zero;
         }
 
         private IntPtr LoadWithResolver(string name, PathResolver pathResolver)
