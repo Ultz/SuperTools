@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;netcoreapp3.0</TargetFrameworks>
         <Description>SuperTools is an advanced set of libraries to aid low-level development in C#. This package provides a method for loading and unloading native libraries and function pointers for use with SuperInvoke or any other alternative.</Description>
     </PropertyGroup>
 

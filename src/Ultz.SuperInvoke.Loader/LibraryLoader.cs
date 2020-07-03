@@ -260,17 +260,30 @@ namespace Ultz.SuperInvoke.Loader
         {
             protected override IntPtr CoreLoadNativeLibrary(string name)
             {
-                return NativeLibrary3.Load(name, Assembly.GetCallingAssembly(), null);
+                if (NativeLibrary3.TryLoad(name, Assembly.GetCallingAssembly(), null, out var lib))
+                {
+                    return lib;
+                }
+                
+                return IntPtr.Zero;
             }
 
             protected override void CoreFreeNativeLibrary(IntPtr handle)
             {
-                NativeLibrary3.Free(handle);
+                if (handle != IntPtr.Zero)
+                {
+                    NativeLibrary3.Free(handle);
+                }
             }
 
             protected override IntPtr CoreLoadFunctionPointer(IntPtr handle, string functionName)
             {
-                return NativeLibrary3.GetExport(handle, functionName);
+                if (NativeLibrary3.TryGetExport(handle, functionName, out var ptr))
+                {
+                    return ptr;
+                }
+                
+                return IntPtr.Zero;
             }
         }
 #endif
